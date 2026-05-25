@@ -1,0 +1,16 @@
+{
+  "name": "Home Rhythm",
+  "short_name": "Home Rhythm",
+  "description": "A practical recurring chore dashboard for a two-adult, pet-friendly home.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f2ea",
+  "theme_color": "#31795f",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

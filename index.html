@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f2ea">
+    <title>Home Rhythm</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Home Rhythm navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div>
+            <p class="eyebrow">Two adults · four cats</p>
+            <h1>Home Rhythm</h1>
+          </div>
+        </div>
+
+        <section class="today-card" aria-labelledby="today-heading">
+          <div>
+            <p class="eyebrow">Today</p>
+            <h2 id="today-heading"></h2>
+          </div>
+          <div class="today-ring" aria-label="Completion progress">
+            <svg viewBox="0 0 120 120" role="img" aria-labelledby="ring-title ring-desc">
+              <title id="ring-title">Today's completion</title>
+              <desc id="ring-desc">Shows how many visible chores are complete today.</desc>
+              <circle class="ring-bg" cx="60" cy="60" r="51"></circle>
+              <circle class="ring-progress" cx="60" cy="60" r="51"></circle>
+            </svg>
+            <div>
+              <strong id="progress-value">0%</strong>
+              <span>done</span>
+            </div>
+          </div>
+        </section>
+
+        <nav class="frequency-nav" aria-label="Chore frequency">
+          <button class="nav-pill is-active" data-filter="all" type="button">All</button>
+          <button class="nav-pill" data-filter="daily" type="button">Daily</button>
+          <button class="nav-pill" data-filter="weekly" type="button">Weekly</button>
+          <button class="nav-pill" data-filter="monthly" type="button">Monthly</button>
+          <button class="nav-pill" data-filter="quarterly" type="button">Quarterly</button>
+          <button class="nav-pill" data-filter="yearly" type="button">Yearly</button>
+        </nav>
+
+        <section class="mini-panel" aria-labelledby="balance-heading">
+          <div class="panel-heading">
+            <h2 id="balance-heading">Load Balance</h2>
+            <button class="icon-button" id="reset-demo" type="button" aria-label="Reset demo data" title="Reset demo data">
+              <span aria-hidden="true">↺</span>
+            </button>
+          </div>
+          <div class="balance-bars" id="balance-bars"></div>
+        </section>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Suburban home care system</p>
+            <h2>Chores, pet care, and seasonal maintenance in one rhythm.</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="secondary-button" id="export-plan" type="button">
+              <span aria-hidden="true">↓</span>
+              Export
+            </button>
+            <button class="primary-button" id="open-add-task" type="button">
+              <span aria-hidden="true">+</span>
+              Add Chore
+            </button>
+          </div>
+        </header>
+
+        <section class="summary-grid" aria-label="House status summary">
+          <article class="stat-card">
+            <span class="stat-icon floors" aria-hidden="true"></span>
+            <div>
+              <p>Due Today</p>
+              <strong id="due-count">0</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon cats" aria-hidden="true"></span>
+            <div>
+              <p>Cat Care</p>
+              <strong id="cat-count">0</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon yard" aria-hidden="true"></span>
+            <div>
+              <p>Outdoor / Garage</p>
+              <strong id="outdoor-count">0</strong>
+            </div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon alert" aria-hidden="true"></span>
+            <div>
+              <p>Needs Attention</p>
+              <strong id="attention-count">0</strong>
+            </div>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="toolbar" aria-label="Chore controls">
+            <label class="search-field">
+              <span aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" placeholder="Search chores, zones, notes">
+            </label>
+            <label class="select-field">
+              <span>Owner</span>
+              <select id="owner-filter">
+                <option value="all">Everyone</option>
+                <option value="You">You</option>
+                <option value="Partner">Partner</option>
+                <option value="Shared">Shared</option>
+              </select>
+            </label>
+            <label class="toggle-field">
+              <input id="show-completed" type="checkbox" checked>
+              <span>Show completed</span>
+            </label>
+          </div>
+
+          <div class="board" id="chore-board" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="task-dialog" id="task-dialog">
+      <form method="dialog" id="task-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">New recurring item</p>
+            <h2>Add Chore</h2>
+          </div>
+          <button class="icon-button" value="cancel" type="submit" aria-label="Close" title="Close">×</button>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            <span>Chore</span>
+            <input name="title" required maxlength="80" placeholder="Clean upstairs litter area">
+          </label>
+          <label>
+            <span>Frequency</span>
+            <select name="frequency">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </label>
+          <label>
+            <span>Owner</span>
+            <select name="owner">
+              <option>Shared</option>
+              <option>You</option>
+              <option>Partner</option>
+            </select>
+          </label>
+          <label>
+            <span>Zone</span>
+            <input name="zone" required maxlength="40" placeholder="Cat zones">
+          </label>
+          <label class="wide">
+            <span>Notes</span>
+            <textarea name="notes" rows="3" maxlength="180" placeholder="Include supplies, standard of done, or seasonal timing."></textarea>
+          </label>
+          <label class="toggle-field wide">
+            <input name="petCare" type="checkbox">
+            <span>Cat-related chore</span>
+          </label>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel" type="submit">Cancel</button>
+          <button class="primary-button" value="default" type="submit">Add Chore</button>
+        </div>
+      </form>
+    </dialog>
+
+    <template id="group-template">
+      <section class="chore-group">
+        <div class="group-header">
+          <div>
+            <p class="eyebrow group-count"></p>
+            <h3></h3>
+          </div>
+          <span class="group-cadence"></span>
+        </div>
+        <div class="chore-list"></div>
+      </section>
+    </template>
+
+    <template id="task-template">
+      <article class="task-card">
+        <button class="check-button" type="button" aria-label="Mark complete"></button>
+        <div class="task-body">
+          <div class="task-title-row">
+            <h4></h4>
+            <span class="status-badge"></span>
+          </div>
+          <p class="task-notes"></p>
+          <div class="task-meta"></div>
+        </div>
+        <button class="icon-button delete-task" type="button" aria-label="Delete chore" title="Delete chore">×</button>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
