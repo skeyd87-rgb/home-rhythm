@@ -6,40 +6,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Home Rhythm — a mobile-first PWA household operating system for two adults. Not a guilt-trip chore app. The emotional target: *"The house is mostly steady. Two things are slipping. Everything else can wait."*
 
+See [ROADMAP.md](ROADMAP.md) for the full phased build plan and [PROJECT.md](PROJECT.md) for product brief, tone, and feature list.
+
 ## Current Phase
 
-Phase 1/2 transition — a working vanilla JS/HTML/CSS prototype exists in this folder. The next step is rebuilding as a Vite + React + TypeScript PWA using the prototype as product reference, not as the production foundation.
+Phase 0 partially complete — Git initialized, prototype preserved, docs written. **The production Vite + React + TypeScript app has not been scaffolded yet.** Next step: create the production app in a subfolder (e.g. `app/`) and begin Phase 2 (polished clickable prototype with mock data).
 
-## What the Prototype Does
+## Commands
 
-Vanilla HTML/CSS/JS single-page app with localStorage persistence (`home-rhythm-v1`). Key implemented features:
-
-- `starterTasks` array in [app.js](app.js) defines the full chore data model (id, title, frequency, owner, zone, notes, petCare, lastCompleted)
-- `dueInfo()` computes status (`complete` / `due` / `overdue` / `scheduled`) from lastCompleted + frequency interval — **this logic needs to be ported and renamed** to use `slipping` / `steady` language in the production build
-- `render()` groups tasks by frequency, sorts by urgency, and builds DOM from `<template>` elements
-- Load balance sidebar shows owner task counts as bars (You / Partner / Shared)
-- Filter/search toolbar: frequency pills, owner dropdown, show-completed toggle
-- Add chore dialog (`<dialog>` element), export to clipboard/file
-- PWA: [manifest.webmanifest](manifest.webmanifest) + [service-worker.js](service-worker.js)
-- Dev server: [server.js](server.js) (Node http-server), launch via [Start-Home-Rhythm.ps1](Start-Home-Rhythm.ps1)
-
-To run the prototype locally:
+### Prototype (reference only — do not extend)
 ```
 node server.js
+# or
+.\Start-Home-Rhythm.ps1
 ```
-or open `Start-Home-Rhythm.ps1` / `Start-Home-Rhythm.bat`.
+Serves the vanilla JS prototype at `http://localhost:3000`.
 
-## Planned Stack (Production Build)
+### Production app (once scaffolded under `app/`)
+```
+cd app
+npm run dev       # Vite dev server
+npm run build     # Production build
+npm run preview   # Preview production build
+npm run lint      # ESLint
+```
 
-- Vite + React + TypeScript
-- Firebase Hosting, Firestore, Google Auth (Phase 3+)
-- PWA manifest + service worker
-- Mobile-first responsive UI
+## Prototype Reference
+
+Vanilla HTML/CSS/JS single-page app with localStorage persistence (`home-rhythm-v1`). Key logic to port to production:
+
+- `starterTasks` in [app.js](app.js) — full chore data model (id, title, frequency, owner, zone, notes, petCare, lastCompleted). Use as seed data for the mock repository.
+- `dueInfo()` in [app.js:378](app.js) — computes status from `lastCompleted` + frequency interval. **Port and rename** in production:
+
+  | Prototype status | Production status |
+  |-----------------|------------------|
+  | `"complete"` | `"handled"` (done today) |
+  | `"due"` | `"slipping"` (at interval boundary) |
+  | `"overdue"` | `"slipping"` (past interval) |
+  | `"scheduled"` | `"steady"` (within window) |
+  | never-completed | `"slipping"` with label "Needs first pass" |
+
+- `sortByUrgency()` sorts by `daysUntil` ascending — tasks most behind surface first.
+- `render()` groups by frequency and builds DOM from `<template>` elements — the production Tasks tab replicates this grouping but with Now / Upcoming / Can Wait / Handled sections instead of frequency groups.
 
 ## Architecture Rules
 
 - Keep all data access behind a repository/service layer so Firestore can replace mock persistence in Phase 3 without touching UI code.
 - The production build starts clean — do not extend the vanilla prototype files.
+- Do not expose raw status strings (`"overdue"`, `"due"`) anywhere in production UI or logic. Only use the production status vocabulary.
 
 ## App Structure
 
@@ -59,6 +73,8 @@ Never use: `failed`, `missed`, `behind`, `incomplete`, or harsh overdue phrasing
 
 Always prefer: `steady`, `slipping`, `needs attention`, `worth doing soon`, `can wait`, `handled recently`, `usually you`, `usually partner`, `shared rhythm`, `house pulse`.
 
+This applies to UI copy, code comments, variable names, and status strings.
+
 ## Visual Direction
 
 - Warm off-white background, natural green primary accent
@@ -71,7 +87,7 @@ Always prefer: `steady`, `slipping`, `needs attention`, `worth doing soon`, `can
 
 - Recurrence: daily / weekly / monthly / quarterly / yearly / custom
 - Flexible windows — no rigid due dates
-- Status: steady / slipping (never "overdue" — the prototype uses `"overdue"` internally; rename to `"slipping"` in production)
+- Status: steady / slipping (never "overdue" in production)
 - Owner: me / partner / shared / rotating
-- Zone: one of the 10 zones above
+- Zone: one of the 10 zones (Kitchen, Bathrooms, Upstairs, Downstairs, Cats, Laundry, Garage, Yard, Utility, Exterior)
 - Fields: last completed, next suggested window, notes/standard of done, supplies, estimated time, energy level
