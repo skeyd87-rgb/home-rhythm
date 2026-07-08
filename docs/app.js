@@ -14,18 +14,17 @@ const icons = {
 };
 
 const seedTasks = [
-  { id: "bathrooms", title: "Clean bathrooms", owner: "Shared rhythm", zone: "Bathrooms", status: "worth doing soon", bucket: "soon", section: "now", icon: "bathroom", cadence: "weekly", handled: false },
-  { id: "litter-deep", title: "Deep clean litter boxes", owner: "Usually partner", zone: "Cats", status: "needs attention", bucket: "soon", section: "now", icon: "litter", cadence: "monthly", handled: false },
-  { id: "garage", title: "Garage reset", owner: "Shared rhythm", zone: "Garage", status: "can wait", bucket: "wait", section: "upcoming", icon: "garage", cadence: "quarterly", handled: false },
-  { id: "yard", title: "Yard cleanup", owner: "Usually partner", zone: "Yard", status: "can wait", bucket: "wait", section: "upcoming", icon: "yard", cadence: "quarterly", handled: false },
-  { id: "kitchen", title: "Kitchen reset", owner: "Usually you", zone: "Kitchen", status: "handled recently", bucket: "handled", section: "handled", icon: "kitchen", cadence: "daily", handled: true },
-  { id: "water", title: "Refresh cat water", owner: "Shared rhythm", zone: "Cats", status: "handled recently", bucket: "handled", section: "handled", icon: "cats", cadence: "daily", handled: true },
-  { id: "hvac", title: "Check HVAC filter", owner: "Usually you", zone: "Utility", status: "worth doing soon", bucket: "soon", section: "upcoming", icon: "utility", cadence: "monthly", handled: false },
-  { id: "laundry", title: "Wash bedding and throws", owner: "Usually partner", zone: "Laundry", status: "steady", bucket: "wait", section: "upcoming", icon: "laundry", cadence: "weekly", handled: false }
+  { id: "bathrooms", title: "Clean bathrooms", owner: "Shared rhythm", zone: "Bathrooms", status: "worth doing soon", bucket: "soon", section: "now", icon: "bathroom", cadence: "weekly", day: "Saturday", handled: false },
+  { id: "litter-deep", title: "Deep clean litter boxes", owner: "Usually partner", zone: "Cats", status: "needs attention", bucket: "soon", section: "now", icon: "litter", cadence: "monthly", day: "Sunday", handled: false },
+  { id: "garage", title: "Garage reset", owner: "Shared rhythm", zone: "Garage", status: "can wait", bucket: "wait", section: "upcoming", icon: "garage", cadence: "quarterly", day: "Saturday", handled: false },
+  { id: "yard", title: "Yard cleanup", owner: "Usually partner", zone: "Yard", status: "can wait", bucket: "wait", section: "upcoming", icon: "yard", cadence: "quarterly", day: "Sunday", handled: false },
+  { id: "kitchen", title: "Kitchen reset", owner: "Usually you", zone: "Kitchen", status: "handled recently", bucket: "handled", section: "handled", icon: "kitchen", cadence: "daily", day: "flexible", handled: true },
+  { id: "water", title: "Refresh cat water", owner: "Shared rhythm", zone: "Cats", status: "handled recently", bucket: "handled", section: "handled", icon: "cats", cadence: "daily", day: "flexible", handled: true },
+  { id: "hvac", title: "Check HVAC filter", owner: "Usually you", zone: "Utility", status: "worth doing soon", bucket: "soon", section: "now", icon: "utility", cadence: "monthly", day: "Friday", handled: false },
+  { id: "laundry", title: "Wash bedding and throws", owner: "Usually partner", zone: "Laundry", status: "steady", bucket: "upcoming", section: "upcoming", icon: "laundry", cadence: "weekly", day: "Wednesday", handled: false }
 ];
 
 const ownerOptions = ["Shared rhythm", "Usually you", "Usually partner", "Rotating"];
-
 const zones = [
   { name: "Kitchen", note: "Handled recently", icon: "kitchen", pulse: 82 },
   { name: "Cats", note: "One item slipping", icon: "cats", pulse: 56 },
@@ -43,17 +42,9 @@ const rhythmItems = [
   { title: "Outdoor care can wait", text: "Garage and yard work belong in a flexible weekend window.", color: "var(--gold)" }
 ];
 
-const calendarItems = [
-  "Weekly bathrooms",
-  "Monthly HVAC filter check",
-  "Monthly deep clean litter boxes",
-  "Quarterly garage reset",
-  "Quarterly yard cleanup",
-  "Yearly smoke and CO detector check"
-];
-
 let state = loadState();
 let activeTaskFilter = "now";
+let selectedTaskId = null;
 
 function escapeHtml(value) {
   return String(value)
@@ -67,11 +58,25 @@ function escapeHtml(value) {
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey));
-    if (stored?.tasks?.length) return stored;
+    if (stored?.tasks?.length) {
+      return { tasks: stored.tasks.map(normalizeTask) };
+    }
   } catch {
     localStorage.removeItem(storageKey);
   }
   return { tasks: seedTasks };
+}
+
+function normalizeTask(task) {
+  const placement = placementForStatus(task.status || "steady");
+  return {
+    ...task,
+    day: task.day || "flexible",
+    icon: task.icon || iconForZone(task.zone || "Kitchen"),
+    handled: task.status === "handled recently" ? true : Boolean(task.handled),
+    section: task.section || placement.section,
+    bucket: task.bucket === "wait" && task.status === "steady" ? "upcoming" : task.bucket || placement.bucket
+  };
 }
 
 function saveState() {
@@ -93,7 +98,20 @@ function taskTimingDefaults(timing) {
   if (timing === "wait") {
     return { status: "can wait", bucket: "wait", section: "upcoming" };
   }
-  return { status: "steady", bucket: "wait", section: "upcoming" };
+  return { status: "steady", bucket: "upcoming", section: "upcoming" };
+}
+
+function placementForStatus(status) {
+  if (status === "handled recently") {
+    return { handled: true, bucket: "handled", section: "handled" };
+  }
+  if (status === "can wait") {
+    return { handled: false, bucket: "wait", section: "upcoming" };
+  }
+  if (status === "steady") {
+    return { handled: false, bucket: "upcoming", section: "upcoming" };
+  }
+  return { handled: false, bucket: "soon", section: "now" };
 }
 
 function iconForZone(zone) {
@@ -110,19 +128,29 @@ function iconForZone(zone) {
 }
 
 function updateTask(id, updates) {
-  state.tasks = state.tasks.map((task) => task.id === id ? { ...task, ...updates } : task);
+  state.tasks = state.tasks.map((task) => task.id === id ? normalizeTask({ ...task, ...updates }) : task);
   saveState();
   render();
 }
 
-function toggleHandled(task) {
-  const handled = !task.handled;
-  updateTask(task.id, {
-    handled,
-    status: handled ? "handled recently" : task.status === "handled recently" ? "worth doing soon" : task.status,
-    section: handled ? "handled" : task.section === "handled" ? "now" : task.section,
-    bucket: handled ? "handled" : task.bucket === "handled" ? "soon" : task.bucket
-  });
+function openEditor(taskId) {
+  const task = state.tasks.find((candidate) => candidate.id === taskId);
+  if (!task) return;
+  selectedTaskId = taskId;
+  document.querySelector("#chore-form").hidden = true;
+  document.querySelector("#editor-title").textContent = task.title;
+  document.querySelector("#editor-status").value = task.status;
+  document.querySelector("#editor-owner").value = task.owner;
+  document.querySelector("#editor-day").value = task.day || "flexible";
+  document.querySelector("#editor-zone").value = task.zone;
+  document.querySelector("#editor-cadence").value = task.cadence;
+  document.querySelector("#chore-editor").hidden = false;
+  document.querySelector("#chore-editor").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeEditor() {
+  selectedTaskId = null;
+  document.querySelector("#chore-editor").hidden = true;
 }
 
 function taskRow(task, compact = false, manage = false) {
@@ -145,37 +173,21 @@ function taskRow(task, compact = false, manage = false) {
         <p>${escapeHtml(task.owner)} · ${escapeHtml(task.cadence)}</p>
         <span class="chip-row">
           <span class="chip">${escapeHtml(task.zone)}</span>
+          <span class="chip">${task.day === "flexible" ? "Flexible" : escapeHtml(task.day || "Flexible")}</span>
         </span>
       </span>
       <span class="task-controls">
         <span class="status-chip ${statusClass(task.status)}">${escapeHtml(task.status)}</span>
         ${manage ? `
-          <label class="owner-control">
-            <span>Assign</span>
-            <select data-owner-for="${escapeHtml(task.id)}">
-              ${ownerOptions.map((owner) => `<option${owner === task.owner ? " selected" : ""}>${escapeHtml(owner)}</option>`).join("")}
-            </select>
-          </label>
-          <button class="delete-task" type="button" data-delete-task="${escapeHtml(task.id)}" aria-label="Remove ${escapeHtml(task.title)}">Remove</button>
+          <span class="edit-hint">Open</span>
         ` : ""}
       </span>
     `;
 
-  row.addEventListener("click", () => toggleHandled(task));
-
-  if (manage) {
-    row.querySelector("select")?.addEventListener("click", (event) => event.stopPropagation());
-    row.querySelector("select")?.addEventListener("change", (event) => {
-      event.stopPropagation();
-      updateTask(task.id, { owner: event.target.value });
-    });
-    row.querySelector(".delete-task")?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      state.tasks = state.tasks.filter((candidate) => candidate.id !== task.id);
-      saveState();
-      render();
-    });
-  }
+  row.addEventListener("click", () => {
+    if (!manage) setActiveTab("tasks");
+    openEditor(task.id);
+  });
 
   return row;
 }
@@ -203,7 +215,7 @@ function renderTasks() {
 
   const sections = {
     now: ["Now", (task) => task.section === "now" && !task.handled],
-    upcoming: ["Upcoming", (task) => task.section === "upcoming" && !task.handled],
+    upcoming: ["Upcoming", (task) => task.bucket === "upcoming" && !task.handled],
     wait: ["Can Wait", (task) => task.bucket === "wait" && !task.handled],
     handled: ["Handled", (task) => task.handled]
   };
@@ -254,14 +266,56 @@ function renderRhythm() {
 }
 
 function renderCalendar() {
-  const list = document.querySelector("#calendar-list");
-  list.replaceChildren();
-  calendarItems.forEach((item) => {
-    const row = document.createElement("article");
-    row.className = "insight-row";
-    row.innerHTML = `<span class="dot"></span><span><h3>${item}</h3><p>Candidate for future Google Calendar sync.</p></span>`;
-    list.append(row);
+  const calendar = document.querySelector("#week-calendar");
+  calendar.replaceChildren();
+  getSevenDayWindow().forEach((day) => {
+    const dayTasks = state.tasks.filter((task) => taskMatchesCalendarDay(task, day.name));
+    const card = document.createElement("article");
+    card.className = "day-card";
+    card.innerHTML = `
+      <div class="day-heading">
+        <span>${escapeHtml(day.label)}</span>
+        <strong>${escapeHtml(day.dateLabel)}</strong>
+      </div>
+      <div class="day-task-list">
+        ${dayTasks.length ? dayTasks.map((task) => `
+          <button class="calendar-task" type="button" data-open-task="${escapeHtml(task.id)}">
+            <span>${escapeHtml(task.title)}</span>
+            <small>${escapeHtml(task.owner)} · ${escapeHtml(task.status)}</small>
+          </button>
+        `).join("") : `<p class="quiet-day">Nothing planned here.</p>`}
+      </div>
+    `;
+    card.querySelectorAll("[data-open-task]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveTab("tasks");
+        openEditor(button.dataset.openTask);
+      });
+    });
+    calendar.append(card);
   });
+}
+
+function getSevenDayWindow() {
+  const formatter = new Intl.DateTimeFormat("en-US", { weekday: "long" });
+  const shortFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+  const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+    return {
+      name: formatter.format(date),
+      label: index === 0 ? "Today" : shortFormatter.format(date),
+      dateLabel: dateFormatter.format(date)
+    };
+  });
+}
+
+function taskMatchesCalendarDay(task, dayName) {
+  if (task.handled) return false;
+  if (task.cadence === "daily") return true;
+  return task.day === dayName;
 }
 
 function setActiveTab(tab, updateHash = true) {
@@ -306,6 +360,7 @@ document.querySelector("#reset-tasks").addEventListener("click", () => {
 
 document.querySelector("#show-add-chore").addEventListener("click", () => {
   const form = document.querySelector("#chore-form");
+  closeEditor();
   form.hidden = false;
   document.querySelector("#chore-title").focus();
 });
@@ -326,6 +381,7 @@ document.querySelector("#chore-form").addEventListener("submit", (event) => {
   const owner = String(data.get("owner") || "Shared rhythm");
   const zone = String(data.get("zone") || "Kitchen");
   const cadence = String(data.get("cadence") || "weekly");
+  const day = String(data.get("day") || "flexible");
   const timing = String(data.get("timing") || "upcoming");
   const timingDefaults = taskTimingDefaults(timing);
 
@@ -336,6 +392,7 @@ document.querySelector("#chore-form").addEventListener("submit", (event) => {
       owner,
       zone,
       cadence,
+      day,
       icon: iconForZone(zone),
       handled: false,
       ...timingDefaults
@@ -350,6 +407,35 @@ document.querySelector("#chore-form").addEventListener("submit", (event) => {
   form.reset();
   form.hidden = true;
   saveState();
+  render();
+});
+
+document.querySelector("#close-editor").addEventListener("click", closeEditor);
+
+document.querySelector("#chore-editor").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!selectedTaskId) return;
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const status = String(data.get("status") || "steady");
+  const zone = String(data.get("zone") || "Kitchen");
+  updateTask(selectedTaskId, {
+    status,
+    owner: String(data.get("owner") || "Shared rhythm"),
+    day: String(data.get("day") || "flexible"),
+    zone,
+    cadence: String(data.get("cadence") || "weekly"),
+    icon: iconForZone(zone),
+    ...placementForStatus(status)
+  });
+  closeEditor();
+});
+
+document.querySelector("#editor-delete").addEventListener("click", () => {
+  if (!selectedTaskId) return;
+  state.tasks = state.tasks.filter((candidate) => candidate.id !== selectedTaskId);
+  saveState();
+  closeEditor();
   render();
 });
 

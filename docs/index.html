@@ -123,6 +123,21 @@
                 </select>
               </label>
               <label>
+                <span>Day</span>
+                <select id="chore-day" name="day">
+                  <option value="flexible" selected>Flexible</option>
+                  <option>Sunday</option>
+                  <option>Monday</option>
+                  <option>Tuesday</option>
+                  <option>Wednesday</option>
+                  <option>Thursday</option>
+                  <option>Friday</option>
+                  <option>Saturday</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-grid">
+              <label>
                 <span>Timing</span>
                 <select id="chore-timing" name="timing">
                   <option value="now">Now</option>
@@ -134,6 +149,81 @@
             <div class="form-actions">
               <button class="soft-button" type="button" id="cancel-add-chore">Cancel</button>
               <button class="primary-button compact-action" type="submit">Save chore</button>
+            </div>
+          </form>
+          <form class="chore-form chore-editor" id="chore-editor" hidden>
+            <div class="editor-heading">
+              <div>
+                <span class="quiet-label">Chore detail</span>
+                <h3 id="editor-title">Clean bathrooms</h3>
+              </div>
+              <button class="soft-button" type="button" id="close-editor">Close</button>
+            </div>
+            <label>
+              <span>Status</span>
+              <select id="editor-status" name="status">
+                <option>needs attention</option>
+                <option>worth doing soon</option>
+                <option>steady</option>
+                <option>can wait</option>
+                <option>handled recently</option>
+              </select>
+            </label>
+            <div class="form-grid">
+              <label>
+                <span>Owner</span>
+                <select id="editor-owner" name="owner">
+                  <option>Shared rhythm</option>
+                  <option>Usually you</option>
+                  <option>Usually partner</option>
+                  <option>Rotating</option>
+                </select>
+              </label>
+              <label>
+                <span>Day</span>
+                <select id="editor-day" name="day">
+                  <option value="flexible">Flexible</option>
+                  <option>Sunday</option>
+                  <option>Monday</option>
+                  <option>Tuesday</option>
+                  <option>Wednesday</option>
+                  <option>Thursday</option>
+                  <option>Friday</option>
+                  <option>Saturday</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span>Zone</span>
+                <select id="editor-zone" name="zone">
+                  <option>Kitchen</option>
+                  <option>Bathrooms</option>
+                  <option>Cats</option>
+                  <option>Laundry</option>
+                  <option>Upstairs</option>
+                  <option>Downstairs</option>
+                  <option>Garage</option>
+                  <option>Yard</option>
+                  <option>Utility</option>
+                  <option>Exterior</option>
+                </select>
+              </label>
+              <label>
+                <span>Cadence</span>
+                <select id="editor-cadence" name="cadence">
+                  <option>daily</option>
+                  <option>weekly</option>
+                  <option>monthly</option>
+                  <option>quarterly</option>
+                  <option>yearly</option>
+                  <option>custom</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="delete-task" type="button" id="editor-delete">Remove</button>
+              <button class="primary-button compact-action" type="submit">Save changes</button>
             </div>
           </form>
           <div class="segmented" role="tablist" aria-label="Task view">
@@ -169,13 +259,13 @@
         <section class="tab-panel" id="tab-calendar" aria-labelledby="nav-calendar">
           <div class="screen-title">
             <h2>Calendar</h2>
-            <span class="quiet-label">Bigger chores only</span>
+            <span class="quiet-label">Next 7 days</span>
           </div>
           <article class="insight-card calendar-note">
             <h3>Home Rhythm stays the source of truth.</h3>
-            <p>Calendar sync can come later for larger weekly, monthly, quarterly, and yearly upkeep.</p>
+            <p>Use this as a seven-day planning view. Google Calendar sync can come later for larger upkeep only.</p>
           </article>
-          <div class="calendar-list" id="calendar-list"></div>
+          <div class="week-calendar" id="week-calendar"></div>
         </section>
 
         <nav class="bottom-nav" aria-label="Primary">

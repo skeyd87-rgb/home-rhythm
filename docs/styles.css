@@ -460,7 +460,7 @@ button {
 }
 
 .task-row.is-manageable {
-  cursor: default;
+  cursor: pointer;
 }
 
 .task-row + .task-row,
@@ -553,6 +553,12 @@ button {
   gap: 8px;
 }
 
+.edit-hint {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .owner-control {
   display: grid;
   gap: 5px;
@@ -635,6 +641,21 @@ button {
   border-radius: 18px;
   background: rgba(255, 253, 248, 0.94);
   box-shadow: 0 10px 30px rgba(68, 52, 31, 0.08);
+}
+
+.editor-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.editor-heading h3 {
+  margin: 5px 0 0;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  line-height: 1.1;
 }
 
 .chore-form[hidden] {
@@ -824,6 +845,78 @@ button {
   background: linear-gradient(145deg, #fffdf8, #f3eadb);
 }
 
+.week-calendar {
+  display: grid;
+  gap: 12px;
+}
+
+.day-card {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 10px 28px rgba(68, 52, 31, 0.07);
+}
+
+.day-heading {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  color: var(--ink);
+}
+
+.day-heading span {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.day-heading strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.day-task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.calendar-task {
+  min-height: 54px;
+  border: 1px solid rgba(53, 111, 67, 0.14);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--green-soft);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-task span,
+.calendar-task small {
+  display: block;
+}
+
+.calendar-task span {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.calendar-task small,
+.quiet-day {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.quiet-day {
+  padding: 10px 0;
+}
+
 .bottom-nav {
   position: absolute;
   left: 8px;
@@ -951,6 +1044,10 @@ button {
 
   .owner-control {
     width: 100%;
+  }
+
+  .day-card {
+    grid-template-columns: 72px 1fr;
   }
 
   .bottom-nav {
