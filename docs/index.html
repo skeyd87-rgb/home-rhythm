@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f2ea">
+    <title>Home Rhythm</title>
+    <meta name="description" content="A calm household rhythm app for shared chores, pet care, and home upkeep.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page-shell" id="app">
+      <section class="phone-shell" aria-label="Home Rhythm app prototype">
+        <div class="status-bar" aria-hidden="true">
+          <span>9:41</span>
+          <span class="status-icons">
+            <span></span><span></span><span></span>
+            <span class="wifi"></span>
+            <span class="battery"></span>
+          </span>
+        </div>
+
+        <header class="app-header">
+          <div>
+            <h1>Home Rhythm</h1>
+            <p>Two adults · four cats</p>
+          </div>
+          <button class="round-button" type="button" aria-label="Household profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
+              <path d="M4.8 20.2c1.1-3.5 3.5-5.3 7.2-5.3s6.1 1.8 7.2 5.3"></path>
+            </svg>
+          </button>
+        </header>
+
+        <section class="tab-panel is-active" id="tab-home" aria-labelledby="nav-home">
+          <article class="pulse-card">
+            <div class="pulse-copy">
+              <h2>The house is mostly steady.</h2>
+              <p>Two things are slipping. Everything else can wait.</p>
+            </div>
+            <div class="home-scene" aria-hidden="true">
+              <div class="tree"></div>
+              <div class="house">
+                <span class="roof"></span>
+                <span class="chimney"></span>
+                <span class="door"></span>
+                <span class="window window-one"></span>
+                <span class="window window-two"></span>
+              </div>
+              <div class="plant"></div>
+              <div class="cat cat-one"></div>
+              <div class="cat cat-two"></div>
+              <div class="cat cat-three"></div>
+              <div class="cat cat-four"></div>
+            </div>
+          </article>
+
+          <section class="screen-section">
+            <div class="section-heading">
+              <h2>Worth doing soon</h2>
+            </div>
+            <div class="stacked-card task-list" data-task-list="soon"></div>
+          </section>
+
+          <section class="screen-section">
+            <div class="section-heading">
+              <h2>Can wait</h2>
+            </div>
+            <div class="stacked-card compact-list" data-task-list="wait"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="tab-tasks" aria-labelledby="nav-tasks">
+          <div class="screen-title">
+            <h2>Tasks</h2>
+            <button class="soft-button" type="button" id="reset-tasks">Reset</button>
+          </div>
+          <div class="segmented" role="tablist" aria-label="Task view">
+            <button class="is-selected" type="button" data-filter="now">Now</button>
+            <button type="button" data-filter="upcoming">Upcoming</button>
+            <button type="button" data-filter="handled">Handled</button>
+          </div>
+          <div class="task-groups" id="task-groups"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-house" aria-labelledby="nav-house">
+          <div class="screen-title">
+            <h2>House</h2>
+            <span class="quiet-label">Zone view</span>
+          </div>
+          <div class="zone-grid" id="zone-grid"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-rhythm" aria-labelledby="nav-rhythm">
+          <div class="screen-title">
+            <h2>Rhythm</h2>
+            <span class="quiet-label">This week</span>
+          </div>
+          <article class="insight-card">
+            <h3>Load feels balanced</h3>
+            <p>You have carried a little more pet care. Partner has more kitchen items lately. Want to rebalance one recurring item?</p>
+            <button class="primary-button" type="button">Review rhythm</button>
+          </article>
+          <div class="rhythm-list" id="rhythm-list"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-calendar" aria-labelledby="nav-calendar">
+          <div class="screen-title">
+            <h2>Calendar</h2>
+            <span class="quiet-label">Bigger chores only</span>
+          </div>
+          <article class="insight-card calendar-note">
+            <h3>Home Rhythm stays the source of truth.</h3>
+            <p>Calendar sync can come later for larger weekly, monthly, quarterly, and yearly upkeep.</p>
+          </article>
+          <div class="calendar-list" id="calendar-list"></div>
+        </section>
+
+        <nav class="bottom-nav" aria-label="Primary">
+          <button class="is-active" id="nav-home" type="button" data-tab="home">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2v8.4a1 1 0 0 1-1 1h-5.2v-6.1H9.7v6.1H4.5a1 1 0 0 1-1-1v-8.4Z"></path></svg>
+            <span>Home</span>
+          </button>
+          <button id="nav-tasks" type="button" data-tab="tasks">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6.2h12M6 11.6h12M6 17h7"></path><path d="M4 3.5h16v17H4z"></path></svg>
+            <span>Tasks</span>
+          </button>
+          <button id="nav-house" type="button" data-tab="house">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-6.5 8 6.5v9H4v-9Z"></path><path d="M10 20v-6h4v6"></path></svg>
+            <span>House</span>
+          </button>
+          <button id="nav-rhythm" type="button" data-tab="rhythm">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8c3.2-2.8 6.1-2.8 9 0s5.8 2.8 9 0M3 15.5c3.2-2.8 6.1-2.8 9 0s5.8 2.8 9 0"></path></svg>
+            <span>Rhythm</span>
+          </button>
+          <button id="nav-calendar" type="button" data-tab="calendar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5z"></path><path d="M8 3v4M16 3v4M5 10h14"></path></svg>
+            <span>Calendar</span>
+          </button>
+        </nav>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
