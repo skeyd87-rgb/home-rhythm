@@ -24,6 +24,8 @@ const seedTasks = [
   { id: "laundry", title: "Wash bedding and throws", owner: "Usually partner", zone: "Laundry", status: "steady", bucket: "wait", section: "upcoming", icon: "laundry", cadence: "weekly", handled: false }
 ];
 
+const ownerOptions = ["Shared rhythm", "Usually you", "Usually partner", "Rotating"];
+
 const zones = [
   { name: "Kitchen", note: "Handled recently", icon: "kitchen", pulse: 82 },
   { name: "Cats", note: "One item slipping", icon: "cats", pulse: 56 },
@@ -53,6 +55,15 @@ const calendarItems = [
 let state = loadState();
 let activeTaskFilter = "now";
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey));
@@ -75,46 +86,97 @@ function statusClass(status) {
   return status === "needs attention" ? "attention" : "";
 }
 
-function taskRow(task, compact = false) {
-  const row = document.createElement("button");
-  row.type = "button";
-  row.className = compact ? "compact-row" : `task-row ${task.handled ? "is-handled" : ""}`;
+function taskTimingDefaults(timing) {
+  if (timing === "now") {
+    return { status: "worth doing soon", bucket: "soon", section: "now" };
+  }
+  if (timing === "wait") {
+    return { status: "can wait", bucket: "wait", section: "upcoming" };
+  }
+  return { status: "steady", bucket: "wait", section: "upcoming" };
+}
+
+function iconForZone(zone) {
+  const key = String(zone).toLowerCase();
+  if (key.includes("bath")) return "bathroom";
+  if (key.includes("cat")) return "cats";
+  if (key.includes("garage")) return "garage";
+  if (key.includes("yard")) return "yard";
+  if (key.includes("laundry")) return "laundry";
+  if (key.includes("upstairs")) return "upstairs";
+  if (key.includes("utility")) return "utility";
+  if (key.includes("exterior")) return "exterior";
+  return "kitchen";
+}
+
+function updateTask(id, updates) {
+  state.tasks = state.tasks.map((task) => task.id === id ? { ...task, ...updates } : task);
+  saveState();
+  render();
+}
+
+function toggleHandled(task) {
+  const handled = !task.handled;
+  updateTask(task.id, {
+    handled,
+    status: handled ? "handled recently" : task.status === "handled recently" ? "worth doing soon" : task.status,
+    section: handled ? "handled" : task.section === "handled" ? "now" : task.section,
+    bucket: handled ? "handled" : task.bucket === "handled" ? "soon" : task.bucket
+  });
+}
+
+function taskRow(task, compact = false, manage = false) {
+  const row = document.createElement(manage ? "article" : "button");
+  if (!manage) row.type = "button";
+  row.className = compact ? "compact-row" : `task-row ${task.handled ? "is-handled" : ""} ${manage ? "is-manageable" : ""}`;
   row.innerHTML = compact
     ? `
       <span class="task-icon">${renderIcon(task.icon)}</span>
       <span>
-        <h3>${task.title}</h3>
-        <p>${task.owner}</p>
+        <h3>${escapeHtml(task.title)}</h3>
+        <p>${escapeHtml(task.owner)}</p>
       </span>
       <span class="chevron">›</span>
     `
     : `
       <span class="task-icon">${renderIcon(task.icon)}</span>
       <span class="task-content">
-        <h3>${task.title}</h3>
-        <p>${task.owner}</p>
+        <h3>${escapeHtml(task.title)}</h3>
+        <p>${escapeHtml(task.owner)} · ${escapeHtml(task.cadence)}</p>
         <span class="chip-row">
-          <span class="chip">${task.zone}</span>
+          <span class="chip">${escapeHtml(task.zone)}</span>
         </span>
       </span>
-      <span class="status-chip ${statusClass(task.status)}">${task.status}</span>
+      <span class="task-controls">
+        <span class="status-chip ${statusClass(task.status)}">${escapeHtml(task.status)}</span>
+        ${manage ? `
+          <label class="owner-control">
+            <span>Assign</span>
+            <select data-owner-for="${escapeHtml(task.id)}">
+              ${ownerOptions.map((owner) => `<option${owner === task.owner ? " selected" : ""}>${escapeHtml(owner)}</option>`).join("")}
+            </select>
+          </label>
+          <button class="delete-task" type="button" data-delete-task="${escapeHtml(task.id)}" aria-label="Remove ${escapeHtml(task.title)}">Remove</button>
+        ` : ""}
+      </span>
     `;
 
-  row.addEventListener("click", () => {
-    state.tasks = state.tasks.map((candidate) => {
-      if (candidate.id !== task.id) return candidate;
-      const handled = !candidate.handled;
-      return {
-        ...candidate,
-        handled,
-        status: handled ? "handled recently" : candidate.status === "handled recently" ? "worth doing soon" : candidate.status,
-        section: handled ? "handled" : candidate.section === "handled" ? "now" : candidate.section,
-        bucket: handled ? "handled" : candidate.bucket === "handled" ? "soon" : candidate.bucket
-      };
+  row.addEventListener("click", () => toggleHandled(task));
+
+  if (manage) {
+    row.querySelector("select")?.addEventListener("click", (event) => event.stopPropagation());
+    row.querySelector("select")?.addEventListener("change", (event) => {
+      event.stopPropagation();
+      updateTask(task.id, { owner: event.target.value });
     });
-    saveState();
-    render();
-  });
+    row.querySelector(".delete-task")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.tasks = state.tasks.filter((candidate) => candidate.id !== task.id);
+      saveState();
+      render();
+    });
+  }
+
   return row;
 }
 
@@ -142,6 +204,7 @@ function renderTasks() {
   const sections = {
     now: ["Now", (task) => task.section === "now" && !task.handled],
     upcoming: ["Upcoming", (task) => task.section === "upcoming" && !task.handled],
+    wait: ["Can Wait", (task) => task.bucket === "wait" && !task.handled],
     handled: ["Handled", (task) => task.handled]
   };
 
@@ -152,7 +215,7 @@ function renderTasks() {
   group.innerHTML = `<h3>${label}</h3>`;
   const card = document.createElement("div");
   card.className = "stacked-card task-list";
-  items.forEach((task) => card.append(taskRow(task)));
+  items.forEach((task) => card.append(taskRow(task, false, true)));
   if (!items.length) {
     card.innerHTML = `<div class="insight-row"><span class="dot"></span><span><h3>Quiet here</h3><p>Nothing needs to surface in this section right now.</p></span></div>`;
   }
@@ -201,6 +264,18 @@ function renderCalendar() {
   });
 }
 
+function setActiveTab(tab, updateHash = true) {
+  const knownTabs = ["home", "tasks", "house", "rhythm", "calendar"];
+  const nextTab = knownTabs.includes(tab) ? tab : "home";
+  document.querySelectorAll(".bottom-nav button").forEach((candidate) => {
+    candidate.classList.toggle("is-active", candidate.dataset.tab === nextTab);
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("is-active", panel.id === `tab-${nextTab}`);
+  });
+  if (updateHash) history.replaceState(null, "", `#${nextTab}`);
+}
+
 function render() {
   renderHomeLists();
   renderTasks();
@@ -211,9 +286,7 @@ function render() {
 
 document.querySelectorAll(".bottom-nav button").forEach((button) => {
   button.addEventListener("click", () => {
-    const tab = button.dataset.tab;
-    document.querySelectorAll(".bottom-nav button").forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
-    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("is-active", panel.id === `tab-${tab}`));
+    setActiveTab(button.dataset.tab);
   });
 });
 
@@ -231,4 +304,54 @@ document.querySelector("#reset-tasks").addEventListener("click", () => {
   render();
 });
 
+document.querySelector("#show-add-chore").addEventListener("click", () => {
+  const form = document.querySelector("#chore-form");
+  form.hidden = false;
+  document.querySelector("#chore-title").focus();
+});
+
+document.querySelector("#cancel-add-chore").addEventListener("click", () => {
+  const form = document.querySelector("#chore-form");
+  form.reset();
+  form.hidden = true;
+});
+
+document.querySelector("#chore-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const title = String(data.get("title") || "").trim();
+  if (!title) return;
+
+  const owner = String(data.get("owner") || "Shared rhythm");
+  const zone = String(data.get("zone") || "Kitchen");
+  const cadence = String(data.get("cadence") || "weekly");
+  const timing = String(data.get("timing") || "upcoming");
+  const timingDefaults = taskTimingDefaults(timing);
+
+  state.tasks = [
+    {
+      id: `task-${Date.now()}`,
+      title,
+      owner,
+      zone,
+      cadence,
+      icon: iconForZone(zone),
+      handled: false,
+      ...timingDefaults
+    },
+    ...state.tasks
+  ];
+
+  activeTaskFilter = timing === "now" ? "now" : timing === "wait" ? "wait" : "upcoming";
+  document.querySelectorAll(".segmented button").forEach((button) => {
+    button.classList.toggle("is-selected", button.dataset.filter === activeTaskFilter);
+  });
+  form.reset();
+  form.hidden = true;
+  saveState();
+  render();
+});
+
 render();
+setActiveTab(location.hash.replace("#", "") || "home", false);

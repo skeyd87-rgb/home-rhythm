@@ -74,11 +74,72 @@
         <section class="tab-panel" id="tab-tasks" aria-labelledby="nav-tasks">
           <div class="screen-title">
             <h2>Tasks</h2>
-            <button class="soft-button" type="button" id="reset-tasks">Reset</button>
+            <div class="title-actions">
+              <button class="soft-button" type="button" id="reset-tasks">Reset</button>
+              <button class="primary-button compact-action" type="button" id="show-add-chore">Add chore</button>
+            </div>
           </div>
+          <form class="chore-form" id="chore-form" hidden>
+            <label>
+              <span>Chore</span>
+              <input id="chore-title" name="title" type="text" autocomplete="off" placeholder="Water plants" required>
+            </label>
+            <div class="form-grid">
+              <label>
+                <span>Owner</span>
+                <select id="chore-owner" name="owner">
+                  <option>Shared rhythm</option>
+                  <option>Usually you</option>
+                  <option>Usually partner</option>
+                  <option>Rotating</option>
+                </select>
+              </label>
+              <label>
+                <span>Zone</span>
+                <select id="chore-zone" name="zone">
+                  <option>Kitchen</option>
+                  <option>Bathrooms</option>
+                  <option>Cats</option>
+                  <option>Laundry</option>
+                  <option>Upstairs</option>
+                  <option>Downstairs</option>
+                  <option>Garage</option>
+                  <option>Yard</option>
+                  <option>Utility</option>
+                  <option>Exterior</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span>Cadence</span>
+                <select id="chore-cadence" name="cadence">
+                  <option>daily</option>
+                  <option selected>weekly</option>
+                  <option>monthly</option>
+                  <option>quarterly</option>
+                  <option>yearly</option>
+                  <option>custom</option>
+                </select>
+              </label>
+              <label>
+                <span>Timing</span>
+                <select id="chore-timing" name="timing">
+                  <option value="now">Now</option>
+                  <option value="upcoming" selected>Upcoming</option>
+                  <option value="wait">Can wait</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="soft-button" type="button" id="cancel-add-chore">Cancel</button>
+              <button class="primary-button compact-action" type="submit">Save chore</button>
+            </div>
+          </form>
           <div class="segmented" role="tablist" aria-label="Task view">
             <button class="is-selected" type="button" data-filter="now">Now</button>
             <button type="button" data-filter="upcoming">Upcoming</button>
+            <button type="button" data-filter="wait">Can Wait</button>
             <button type="button" data-filter="handled">Handled</button>
           </div>
           <div class="task-groups" id="task-groups"></div>

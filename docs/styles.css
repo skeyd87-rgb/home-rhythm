@@ -422,6 +422,12 @@ button {
   margin-top: 8px;
 }
 
+.title-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .quiet-label {
   color: var(--muted);
   font-size: 13px;
@@ -451,6 +457,10 @@ button {
   text-align: left;
   color: inherit;
   cursor: pointer;
+}
+
+.task-row.is-manageable {
+  cursor: default;
 }
 
 .task-row + .task-row,
@@ -537,6 +547,53 @@ button {
   background: var(--rust-soft);
 }
 
+.task-controls {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.owner-control {
+  display: grid;
+  gap: 5px;
+  min-width: 132px;
+}
+
+.owner-control span,
+.chore-form label span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.owner-control select,
+.chore-form input,
+.chore-form select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.delete-task {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .chevron {
   color: #6c665c;
   font-size: 30px;
@@ -560,13 +617,45 @@ button {
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin: 0 4px 18px;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #eee7db;
+}
+
+.chore-form {
+  display: grid;
+  gap: 12px;
+  margin: 0 4px 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: 0 10px 30px rgba(68, 52, 31, 0.08);
+}
+
+.chore-form[hidden] {
+  display: none;
+}
+
+.chore-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .segmented button,
@@ -599,6 +688,10 @@ button {
   padding: 0 16px;
   color: white;
   background: var(--green);
+}
+
+.compact-action {
+  margin-top: 0;
 }
 
 .task-groups {
@@ -814,6 +907,23 @@ button {
     height: 44px;
   }
 
+  .screen-title {
+    align-items: flex-start;
+  }
+
+  .title-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .segmented button {
+    font-size: 12px;
+  }
+
   .task-row {
     grid-template-columns: 44px minmax(0, 1fr);
     align-items: start;
@@ -831,6 +941,16 @@ button {
     justify-content: center;
     text-align: center;
     line-height: 1.08;
+  }
+
+  .task-controls {
+    grid-column: 2;
+    justify-items: start;
+    width: 100%;
+  }
+
+  .owner-control {
+    width: 100%;
   }
 
   .bottom-nav {
