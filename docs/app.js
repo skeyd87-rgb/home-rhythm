@@ -25,26 +25,12 @@ const seedTasks = [
 ];
 
 const ownerOptions = ["Shared rhythm", "Usually you", "Usually partner", "Rotating"];
-const zones = [
-  { name: "Kitchen", note: "Handled recently", icon: "kitchen", pulse: 82 },
-  { name: "Cats", note: "One item slipping", icon: "cats", pulse: 56 },
-  { name: "Bathrooms", note: "Worth doing soon", icon: "bathroom", pulse: 62 },
-  { name: "Laundry", note: "Steady rhythm", icon: "laundry", pulse: 76 },
-  { name: "Garage", note: "Can wait", icon: "garage", pulse: 72 },
-  { name: "Yard", note: "Can wait", icon: "yard", pulse: 70 },
-  { name: "Upstairs", note: "Steady rhythm", icon: "upstairs", pulse: 84 },
-  { name: "Utility", note: "Filter check soon", icon: "utility", pulse: 64 }
-];
-
-const rhythmItems = [
-  { title: "Cats need a little attention", text: "Deep litter care is the one pet-care item worth surfacing soon.", color: "var(--rust)" },
-  { title: "Kitchen is steady", text: "Daily resets have been handled recently, so nothing extra needs to surface.", color: "var(--green)" },
-  { title: "Outdoor care can wait", text: "Garage and yard work belong in a flexible weekend window.", color: "var(--gold)" }
-];
+const zoneOptions = ["Kitchen", "Bathrooms", "Cats", "Laundry", "Upstairs", "Downstairs", "Garage", "Yard", "Utility", "Exterior"];
 
 let state = loadState();
 let activeTaskFilter = "now";
 let selectedTaskId = null;
+let selectedZone = "Cats";
 
 function escapeHtml(value) {
   return String(value)
@@ -89,6 +75,14 @@ function renderIcon(name) {
 
 function statusClass(status) {
   return status === "needs attention" ? "attention" : "";
+}
+
+function statusWeight(status) {
+  if (status === "needs attention") return 15;
+  if (status === "worth doing soon") return 45;
+  if (status === "steady") return 72;
+  if (status === "can wait") return 82;
+  return 92;
 }
 
 function taskTimingDefaults(timing) {
@@ -237,24 +231,64 @@ function renderTasks() {
 
 function renderZones() {
   const grid = document.querySelector("#zone-grid");
+  const detail = document.querySelector("#zone-detail");
+  const summaries = buildZoneSummaries();
+  const activeSummary = summaries.find((zone) => zone.name === selectedZone) || summaries.find((zone) => zone.count) || summaries[0];
+  selectedZone = activeSummary.name;
+  document.querySelector("#house-summary").textContent = `${state.tasks.length} chores across ${summaries.filter((zone) => zone.count).length} zones`;
   grid.replaceChildren();
-  zones.forEach((zone) => {
-    const card = document.createElement("article");
-    card.className = "zone-card";
+
+  summaries.forEach((zone) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `zone-card ${zone.name === selectedZone ? "is-selected" : ""}`;
     card.innerHTML = `
       <span class="zone-icon">${renderIcon(zone.icon)}</span>
       <h3>${zone.name}</h3>
       <p>${zone.note}</p>
+      <span class="zone-count">${zone.count} ${zone.count === 1 ? "chore" : "chores"}</span>
       <div class="zone-meter" aria-hidden="true"><span style="width: ${zone.pulse}%"></span></div>
     `;
+    card.addEventListener("click", () => {
+      selectedZone = zone.name;
+      renderZones();
+    });
     grid.append(card);
   });
+
+  const zoneTasks = state.tasks.filter((task) => task.zone === selectedZone);
+  detail.innerHTML = `
+    <div class="section-heading">
+      <h2>${escapeHtml(selectedZone)}</h2>
+      <span class="quiet-label">${escapeHtml(activeSummary.note)}</span>
+    </div>
+    <div class="stacked-card task-list"></div>
+  `;
+  const list = detail.querySelector(".task-list");
+  if (zoneTasks.length) {
+    zoneTasks.forEach((task) => list.append(taskRow(task, false, true)));
+  } else {
+    list.innerHTML = `<div class="insight-row"><span class="dot"></span><span><h3>Quiet here</h3><p>No chores are assigned to this zone yet.</p></span></div>`;
+  }
 }
 
 function renderRhythm() {
   const list = document.querySelector("#rhythm-list");
+  const metrics = document.querySelector("#rhythm-metrics");
+  const rhythm = buildRhythmSummary();
+  document.querySelector("#rhythm-summary").textContent = `${rhythm.activeCount} active · ${rhythm.handledCount} handled`;
+  document.querySelector("#rhythm-title").textContent = rhythm.title;
+  document.querySelector("#rhythm-copy").textContent = rhythm.copy;
+  metrics.replaceChildren();
+  rhythm.metrics.forEach((metric) => {
+    const card = document.createElement("article");
+    card.className = "metric-card";
+    card.innerHTML = `<span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(metric.value)}</strong><p>${escapeHtml(metric.note)}</p>`;
+    metrics.append(card);
+  });
+
   list.replaceChildren();
-  rhythmItems.forEach((item) => {
+  rhythm.items.forEach((item) => {
     const row = document.createElement("article");
     row.className = "insight-row";
     row.innerHTML = `
@@ -263,6 +297,109 @@ function renderRhythm() {
     `;
     list.append(row);
   });
+}
+
+function buildZoneSummaries() {
+  const zonesInUse = [...new Set([...zoneOptions, ...state.tasks.map((task) => task.zone)])];
+  return zonesInUse.map((name) => {
+    const tasks = state.tasks.filter((task) => task.zone === name);
+    const active = tasks.filter((task) => !task.handled);
+    const needsAttention = active.filter((task) => task.status === "needs attention").length;
+    const soon = active.filter((task) => task.status === "worth doing soon").length;
+    const handled = tasks.filter((task) => task.handled).length;
+    const pulseTasks = active.length ? active : tasks;
+    const average = pulseTasks.length
+      ? Math.round(pulseTasks.reduce((total, task) => total + statusWeight(task.status), 0) / pulseTasks.length)
+      : 0;
+    let note = "Steady rhythm";
+    if (!tasks.length) note = "No chores yet";
+    else if (needsAttention) note = `${needsAttention} ${needsAttention === 1 ? "item" : "items"} needs attention`;
+    else if (soon) note = `${soon} worth doing soon`;
+    else if (handled === tasks.length) note = "Handled recently";
+    else if (active.every((task) => task.status === "can wait")) note = "Can wait";
+    return {
+      name,
+      note,
+      icon: iconForZone(name),
+      count: tasks.length,
+      pulse: average
+    };
+  });
+}
+
+function buildRhythmSummary() {
+  const activeTasks = state.tasks.filter((task) => !task.handled);
+  const handledTasks = state.tasks.filter((task) => task.handled);
+  const needsAttention = activeTasks.filter((task) => task.status === "needs attention");
+  const soon = activeTasks.filter((task) => task.status === "worth doing soon");
+  const canWait = activeTasks.filter((task) => task.status === "can wait");
+  const ownerCounts = ownerOptions.map((owner) => ({
+    owner,
+    count: activeTasks.filter((task) => task.owner === owner).length
+  })).filter((item) => item.count);
+  const carriedOwner = ownerCounts.slice().sort((a, b) => b.count - a.count)[0];
+  const slippingZones = buildZoneSummaries()
+    .filter((zone) => zone.count && zone.pulse < 60)
+    .sort((a, b) => a.pulse - b.pulse);
+
+  let title = "Load feels balanced";
+  let copy = "The house is mostly steady. Everything else can wait.";
+  if (needsAttention.length) {
+    title = `${needsAttention.length} ${needsAttention.length === 1 ? "thing needs" : "things need"} attention`;
+    copy = `${needsAttention.slice(0, 2).map((task) => task.title).join(" and ")} ${needsAttention.length === 1 ? "is" : "are"} worth surfacing first.`;
+  } else if (soon.length) {
+    title = `${soon.length} worth doing soon`;
+    copy = "A few chores are ready to surface, but the rest of the house can wait.";
+  }
+
+  const items = [];
+  if (slippingZones.length) {
+    items.push({
+      title: `${slippingZones[0].name} is slipping`,
+      text: `${slippingZones[0].note}. Open the House tab to see the chores in that zone.`,
+      color: "var(--rust)"
+    });
+  } else {
+    items.push({
+      title: "No zone is shouting",
+      text: "The active zones are either steady or can wait.",
+      color: "var(--green)"
+    });
+  }
+
+  if (carriedOwner && carriedOwner.count >= 3) {
+    items.push({
+      title: `${carriedOwner.owner} has more recurring items lately`,
+      text: "This is a soft signal, not a scoreboard. Consider moving one chore to shared rhythm if it feels useful.",
+      color: "var(--gold)"
+    });
+  } else {
+    items.push({
+      title: "Load feels balanced",
+      text: "No owner has a noticeably heavier active list right now.",
+      color: "var(--green)"
+    });
+  }
+
+  const nextPlanned = activeTasks.filter((task) => task.day && task.day !== "flexible").length;
+  items.push({
+    title: `${nextPlanned} chores have a planned day`,
+    text: nextPlanned ? "The weekly calendar can now reflect your actual rhythm." : "Add days to chores when you want them to appear on the calendar.",
+    color: "var(--green)"
+  });
+
+  return {
+    title,
+    copy,
+    activeCount: activeTasks.length,
+    handledCount: handledTasks.length,
+    metrics: [
+      { label: "Needs attention", value: String(needsAttention.length), note: "Surface first" },
+      { label: "Worth doing soon", value: String(soon.length), note: "Gentle priority" },
+      { label: "Can wait", value: String(canWait.length), note: "No rush" }
+    ],
+    items
+  };
 }
 
 function renderCalendar() {
@@ -437,6 +574,15 @@ document.querySelector("#editor-delete").addEventListener("click", () => {
   saveState();
   closeEditor();
   render();
+});
+
+document.querySelector("#review-rhythm").addEventListener("click", () => {
+  activeTaskFilter = "now";
+  document.querySelectorAll(".segmented button").forEach((button) => {
+    button.classList.toggle("is-selected", button.dataset.filter === activeTaskFilter);
+  });
+  setActiveTab("tasks");
+  renderTasks();
 });
 
 render();

@@ -759,7 +759,15 @@ button {
 }
 
 .zone-card {
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
   padding: 16px;
+}
+
+.zone-card.is-selected {
+  border-color: rgba(53, 111, 67, 0.45);
+  background: linear-gradient(145deg, #fffdf8, var(--green-soft));
 }
 
 .zone-card .zone-icon {
@@ -774,6 +782,18 @@ button {
 
 .zone-card p {
   font-size: 13px;
+}
+
+.zone-count {
+  display: inline-flex;
+  margin-top: 12px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.zone-detail {
+  margin-top: 22px;
 }
 
 .zone-meter {
@@ -807,6 +827,43 @@ button {
 .calendar-list {
   display: grid;
   gap: 10px;
+}
+
+.rhythm-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.metric-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 13px;
+  background: rgba(255, 253, 248, 0.84);
+}
+
+.metric-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.metric-card p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .insight-row {
@@ -1044,6 +1101,10 @@ button {
 
   .owner-control {
     width: 100%;
+  }
+
+  .rhythm-metrics {
+    grid-template-columns: 1fr;
   }
 
   .day-card {

@@ -238,21 +238,23 @@
         <section class="tab-panel" id="tab-house" aria-labelledby="nav-house">
           <div class="screen-title">
             <h2>House</h2>
-            <span class="quiet-label">Zone view</span>
+            <span class="quiet-label" id="house-summary">Zone view</span>
           </div>
           <div class="zone-grid" id="zone-grid"></div>
+          <section class="zone-detail" id="zone-detail"></section>
         </section>
 
         <section class="tab-panel" id="tab-rhythm" aria-labelledby="nav-rhythm">
           <div class="screen-title">
             <h2>Rhythm</h2>
-            <span class="quiet-label">This week</span>
+            <span class="quiet-label" id="rhythm-summary">This week</span>
           </div>
-          <article class="insight-card">
-            <h3>Load feels balanced</h3>
-            <p>You have carried a little more pet care. Partner has more kitchen items lately. Want to rebalance one recurring item?</p>
-            <button class="primary-button" type="button">Review rhythm</button>
+          <article class="insight-card" id="rhythm-card">
+            <h3 id="rhythm-title">Load feels balanced</h3>
+            <p id="rhythm-copy">The shared rhythm will update as chores change.</p>
+            <button class="primary-button" type="button" id="review-rhythm">Review rhythm</button>
           </article>
+          <div class="rhythm-metrics" id="rhythm-metrics"></div>
           <div class="rhythm-list" id="rhythm-list"></div>
         </section>
 
