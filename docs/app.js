@@ -1,3 +1,5 @@
+import { backend } from "./firebase-repository.js";
+
 const storageKey = "home-rhythm-pages-v1";
 
 const icons = {
@@ -25,12 +27,20 @@ const seedTasks = [
 ];
 
 const ownerOptions = ["Shared rhythm", "Usually you", "Usually partner", "Rotating"];
-const zoneOptions = ["Kitchen", "Bathrooms", "Cats", "Laundry", "Upstairs", "Downstairs", "Garage", "Yard", "Utility", "Exterior"];
+const baseZoneOptions = ["Kitchen", "Bathrooms", "Cats", "Laundry", "Upstairs", "Downstairs", "Garage", "Yard", "Utility", "Exterior"];
 
 let state = loadState();
 let activeTaskFilter = "now";
 let selectedTaskId = null;
 let selectedZone = "Cats";
+let backendSession = {
+  status: "local",
+  user: null,
+  household: null,
+  members: [],
+  syncMessage: "Saved on this device"
+};
+let toastTimer;
 
 function escapeHtml(value) {
   return String(value)
@@ -44,29 +54,66 @@ function escapeHtml(value) {
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey));
-    if (stored?.tasks?.length) {
-      return { tasks: stored.tasks.map(normalizeTask) };
+    if (Array.isArray(stored?.tasks)) {
+      return {
+        tasks: stored.tasks.map(normalizeTask),
+        customZones: normalizeCustomZones(stored.customZones || [])
+      };
     }
   } catch {
     localStorage.removeItem(storageKey);
   }
-  return { tasks: seedTasks };
+  return { tasks: seedTasks, customZones: [] };
+}
+
+function zoneId(name) {
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || `zone-${Date.now()}`;
+}
+
+function normalizeCustomZones(zones) {
+  return zones
+    .map((zone) => typeof zone === "string" ? { id: zoneId(zone), name: zone } : zone)
+    .filter((zone) => zone?.id && zone?.name);
+}
+
+function effectiveZoneNames() {
+  return [...new Set([...baseZoneOptions, ...state.customZones.map((zone) => zone.name)])];
 }
 
 function normalizeTask(task) {
-  const placement = placementForStatus(task.status || "steady");
+  const { updatedAt, updatedBy, ...taskData } = task;
+  const placement = placementForStatus(taskData.status || "steady");
   return {
-    ...task,
-    day: task.day || "flexible",
-    icon: task.icon || iconForZone(task.zone || "Kitchen"),
-    handled: task.status === "handled recently" ? true : Boolean(task.handled),
-    section: task.section || placement.section,
-    bucket: task.bucket === "wait" && task.status === "steady" ? "upcoming" : task.bucket || placement.bucket
+    ...taskData,
+    day: taskData.day || "flexible",
+    icon: taskData.icon || iconForZone(taskData.zone || "Kitchen"),
+    handled: taskData.status === "handled recently" ? true : Boolean(taskData.handled),
+    section: taskData.section || placement.section,
+    bucket: taskData.bucket === "wait" && taskData.status === "steady" ? "upcoming" : taskData.bucket || placement.bucket
   };
 }
 
 function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function showToast(message) {
+  const toast = document.querySelector("#toast");
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 3200);
+}
+
+function handleBackendError(error) {
+  console.error(error);
+  showToast(error?.message || "That change needs another try.");
 }
 
 function renderIcon(name) {
@@ -118,13 +165,40 @@ function iconForZone(zone) {
   if (key.includes("upstairs")) return "upstairs";
   if (key.includes("utility")) return "utility";
   if (key.includes("exterior")) return "exterior";
-  return "kitchen";
+  return baseZoneOptions.includes(zone) ? "kitchen" : "exterior";
+}
+
+function renderZoneSelects() {
+  const zoneNames = effectiveZoneNames();
+  ["#chore-zone", "#editor-zone"].forEach((selector) => {
+    const select = document.querySelector(selector);
+    const current = select.value;
+    select.replaceChildren();
+    zoneNames.forEach((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      select.append(option);
+    });
+    select.value = zoneNames.includes(current) ? current : zoneNames[0];
+  });
 }
 
 function updateTask(id, updates) {
-  state.tasks = state.tasks.map((task) => task.id === id ? normalizeTask({ ...task, ...updates }) : task);
+  const previous = state.tasks.find((task) => task.id === id);
+  let changedTask;
+  state.tasks = state.tasks.map((task) => {
+    if (task.id !== id) return task;
+    changedTask = normalizeTask({ ...task, ...updates });
+    return changedTask;
+  });
   saveState();
   render();
+  if (changedTask) {
+    void backend.saveTask(changedTask, {
+      recordCompletion: previous?.status !== "handled recently" && changedTask.status === "handled recently"
+    }).catch(handleBackendError);
+  }
 }
 
 function openEditor(taskId) {
@@ -214,7 +288,12 @@ function renderTasks() {
     handled: ["Handled", (task) => task.handled]
   };
 
-  const [label, predicate] = sections[activeTaskFilter];
+  const statusFilter = activeTaskFilter.startsWith("status:")
+    ? activeTaskFilter.slice("status:".length)
+    : null;
+  const [label, predicate] = statusFilter
+    ? [statusFilter.replace(/\b\w/g, (letter) => letter.toUpperCase()), (task) => task.status === statusFilter]
+    : sections[activeTaskFilter];
   const items = state.tasks.filter(predicate);
   const group = document.createElement("section");
   group.className = "task-group";
@@ -227,6 +306,15 @@ function renderTasks() {
   }
   group.append(card);
   groups.append(group);
+}
+
+function openTasksForStatus(status) {
+  activeTaskFilter = `status:${status}`;
+  document.querySelectorAll(".segmented button").forEach((button) => {
+    button.classList.remove("is-selected");
+  });
+  setActiveTab("tasks");
+  renderTasks();
 }
 
 function renderZones() {
@@ -281,9 +369,11 @@ function renderRhythm() {
   document.querySelector("#rhythm-copy").textContent = rhythm.copy;
   metrics.replaceChildren();
   rhythm.metrics.forEach((metric) => {
-    const card = document.createElement("article");
+    const card = document.createElement("button");
+    card.type = "button";
     card.className = "metric-card";
     card.innerHTML = `<span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(metric.value)}</strong><p>${escapeHtml(metric.note)}</p>`;
+    card.addEventListener("click", () => openTasksForStatus(metric.status));
     metrics.append(card);
   });
 
@@ -300,7 +390,7 @@ function renderRhythm() {
 }
 
 function buildZoneSummaries() {
-  const zonesInUse = [...new Set([...zoneOptions, ...state.tasks.map((task) => task.zone)])];
+  const zonesInUse = [...new Set([...effectiveZoneNames(), ...state.tasks.map((task) => task.zone)])];
   return zonesInUse.map((name) => {
     const tasks = state.tasks.filter((task) => task.zone === name);
     const active = tasks.filter((task) => !task.handled);
@@ -394,9 +484,9 @@ function buildRhythmSummary() {
     activeCount: activeTasks.length,
     handledCount: handledTasks.length,
     metrics: [
-      { label: "Needs attention", value: String(needsAttention.length), note: "Surface first" },
-      { label: "Worth doing soon", value: String(soon.length), note: "Gentle priority" },
-      { label: "Can wait", value: String(canWait.length), note: "No rush" }
+      { label: "Needs attention", value: String(needsAttention.length), note: "Open matching chores", status: "needs attention" },
+      { label: "Worth doing soon", value: String(soon.length), note: "Open matching chores", status: "worth doing soon" },
+      { label: "Can wait", value: String(canWait.length), note: "Open matching chores", status: "can wait" }
     ],
     items
   };
@@ -455,6 +545,101 @@ function taskMatchesCalendarDay(task, dayName) {
   return task.day === dayName;
 }
 
+function setSettingsOpen(open) {
+  const overlay = document.querySelector("#settings-overlay");
+  overlay.hidden = !open;
+  document.querySelector("#settings-open").setAttribute("aria-expanded", String(open));
+  document.body.classList.toggle("settings-open", open);
+  if (open) document.querySelector("#settings-close").focus();
+}
+
+function memberInitials(name) {
+  return String(name || "HR")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "HR";
+}
+
+function renderSettings() {
+  const user = backendSession.user;
+  const household = backendSession.household;
+  const isSynced = backendSession.status === "synced";
+  const syncDot = document.querySelector("#sync-dot");
+  const syncIndicator = document.querySelector("#settings-sync-indicator");
+  syncDot.className = `sync-dot ${isSynced ? "is-synced" : "is-local"}`;
+  syncIndicator.className = `sync-indicator ${isSynced ? "is-synced" : backendSession.status === "error" ? "is-error" : ""}`;
+  document.querySelector("#settings-sync-copy").textContent = backendSession.syncMessage;
+
+  const avatar = document.querySelector("#account-avatar");
+  avatar.textContent = user?.photoURL ? "" : memberInitials(user?.displayName);
+  avatar.style.backgroundImage = user?.photoURL ? `url("${user.photoURL.replaceAll('"', "")}")` : "";
+  document.querySelector("#account-name").textContent = user?.displayName || "This device";
+  document.querySelector("#account-email").textContent = user?.email || "Local household mode";
+  document.querySelector("#sign-in-button").hidden = Boolean(user);
+  document.querySelector("#sign-out-button").hidden = !user;
+  document.querySelector("#household-setup").hidden = !user || Boolean(household);
+  document.querySelector("#household-active").hidden = !household;
+
+  if (household) {
+    document.querySelector("#household-name-input").value = household.name || "Our Home";
+    document.querySelector("#invite-code").textContent = household.inviteCode || "------";
+  }
+
+  const members = document.querySelector("#member-list");
+  members.replaceChildren();
+  (backendSession.members || []).forEach((member) => {
+    const row = document.createElement("div");
+    row.className = "member-row";
+    row.innerHTML = `<span><strong>${escapeHtml(member.displayName || member.email || "Household member")}</strong><small>${escapeHtml(member.role === "owner" ? "Household owner" : "Household member")}</small></span><span class="chip">${member.id === user?.uid ? "You" : "Shared"}</span>`;
+    members.append(row);
+  });
+
+  const zoneList = document.querySelector("#custom-zone-list");
+  zoneList.replaceChildren();
+  if (!state.customZones.length) {
+    zoneList.innerHTML = `<div class="member-row"><span><strong>Defaults only</strong><small>Add a zone when your home needs one.</small></span></div>`;
+  } else {
+    state.customZones.forEach((zone) => {
+      const inUse = state.tasks.some((task) => task.zone === zone.name);
+      const row = document.createElement("div");
+      row.className = "custom-zone-row";
+      row.innerHTML = `<span><strong>${escapeHtml(zone.name)}</strong><small>${inUse ? "Used by a chore" : "Custom zone"}</small></span><button type="button" data-remove-zone="${escapeHtml(zone.id)}" ${inUse ? "disabled" : ""}>Remove</button>`;
+      row.querySelector("button").addEventListener("click", () => removeCustomZone(zone.id));
+      zoneList.append(row);
+    });
+  }
+}
+
+function persistCustomZones() {
+  saveState();
+  render();
+  void backend.saveSettings(state.customZones).catch(handleBackendError);
+}
+
+function addCustomZone(rawName) {
+  const name = rawName.trim();
+  if (!name) return;
+  const exists = effectiveZoneNames().some((zone) => zone.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    showToast("That zone already exists.");
+    return;
+  }
+  state.customZones.push({ id: zoneId(name), name });
+  persistCustomZones();
+  showToast(`${name} added.`);
+}
+
+function removeCustomZone(id) {
+  const zone = state.customZones.find((candidate) => candidate.id === id);
+  if (!zone || state.tasks.some((task) => task.zone === zone.name)) return;
+  state.customZones = state.customZones.filter((candidate) => candidate.id !== id);
+  if (selectedZone === zone.name) selectedZone = "Cats";
+  persistCustomZones();
+  showToast(`${zone.name} removed.`);
+}
+
 function setActiveTab(tab, updateHash = true) {
   const knownTabs = ["home", "tasks", "house", "rhythm", "calendar"];
   const nextTab = knownTabs.includes(tab) ? tab : "home";
@@ -468,11 +653,13 @@ function setActiveTab(tab, updateHash = true) {
 }
 
 function render() {
+  renderZoneSelects();
   renderHomeLists();
   renderTasks();
   renderZones();
   renderRhythm();
   renderCalendar();
+  renderSettings();
 }
 
 document.querySelectorAll(".bottom-nav button").forEach((button) => {
@@ -490,9 +677,10 @@ document.querySelectorAll(".segmented button").forEach((button) => {
 });
 
 document.querySelector("#reset-tasks").addEventListener("click", () => {
-  state = { tasks: seedTasks };
+  state = { tasks: seedTasks.map((task) => ({ ...task })), customZones: state.customZones };
   saveState();
   render();
+  void backend.replaceTasks(state.tasks).catch(handleBackendError);
 });
 
 document.querySelector("#show-add-chore").addEventListener("click", () => {
@@ -522,20 +710,18 @@ document.querySelector("#chore-form").addEventListener("submit", (event) => {
   const timing = String(data.get("timing") || "upcoming");
   const timingDefaults = taskTimingDefaults(timing);
 
-  state.tasks = [
-    {
-      id: `task-${Date.now()}`,
-      title,
-      owner,
-      zone,
-      cadence,
-      day,
-      icon: iconForZone(zone),
-      handled: false,
-      ...timingDefaults
-    },
-    ...state.tasks
-  ];
+  const task = {
+    id: `task-${Date.now()}`,
+    title,
+    owner,
+    zone,
+    cadence,
+    day,
+    icon: iconForZone(zone),
+    handled: false,
+    ...timingDefaults
+  };
+  state.tasks = [task, ...state.tasks];
 
   activeTaskFilter = timing === "now" ? "now" : timing === "wait" ? "wait" : "upcoming";
   document.querySelectorAll(".segmented button").forEach((button) => {
@@ -545,6 +731,7 @@ document.querySelector("#chore-form").addEventListener("submit", (event) => {
   form.hidden = true;
   saveState();
   render();
+  void backend.saveTask(task).catch(handleBackendError);
 });
 
 document.querySelector("#close-editor").addEventListener("click", closeEditor);
@@ -570,10 +757,12 @@ document.querySelector("#chore-editor").addEventListener("submit", (event) => {
 
 document.querySelector("#editor-delete").addEventListener("click", () => {
   if (!selectedTaskId) return;
-  state.tasks = state.tasks.filter((candidate) => candidate.id !== selectedTaskId);
+  const taskId = selectedTaskId;
+  state.tasks = state.tasks.filter((candidate) => candidate.id !== taskId);
   saveState();
   closeEditor();
   render();
+  void backend.deleteTask(taskId).catch(handleBackendError);
 });
 
 document.querySelector("#review-rhythm").addEventListener("click", () => {
@@ -585,5 +774,130 @@ document.querySelector("#review-rhythm").addEventListener("click", () => {
   renderTasks();
 });
 
+document.querySelector("#settings-open").addEventListener("click", () => setSettingsOpen(true));
+document.querySelector("#settings-close").addEventListener("click", () => setSettingsOpen(false));
+document.querySelector("#settings-overlay").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) setSettingsOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !document.querySelector("#settings-overlay").hidden) {
+    setSettingsOpen(false);
+  }
+});
+
+document.querySelector("#sign-in-button").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = "Opening Google";
+  try {
+    await backend.signIn();
+  } catch (error) {
+    handleBackendError(error);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Continue with Google";
+  }
+});
+
+document.querySelector("#sign-out-button").addEventListener("click", async () => {
+  try {
+    await backend.signOut();
+    showToast("Signed out. This device still keeps its local copy.");
+  } catch (error) {
+    handleBackendError(error);
+  }
+});
+
+document.querySelector("#create-household-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  const data = new FormData(event.currentTarget);
+  button.disabled = true;
+  button.textContent = "Creating";
+  try {
+    const result = await backend.createHousehold(
+      String(data.get("householdName") || "Our Home"),
+      state.tasks,
+      state.customZones
+    );
+    showToast(`Household ready. Invite code: ${result.inviteCode}`);
+  } catch (error) {
+    handleBackendError(error);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Create household";
+  }
+});
+
+document.querySelector("#join-household-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button[type='submit']");
+  const data = new FormData(event.currentTarget);
+  button.disabled = true;
+  button.textContent = "Joining";
+  try {
+    await backend.joinHousehold(String(data.get("inviteCode") || ""));
+    event.currentTarget.reset();
+    showToast("Household joined. Syncing the shared rhythm.");
+  } catch (error) {
+    handleBackendError(error);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Join";
+  }
+});
+
+document.querySelector("#rename-household-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  try {
+    await backend.renameHousehold(String(data.get("householdName") || "Our Home"));
+    showToast("Household name saved.");
+  } catch (error) {
+    handleBackendError(error);
+  }
+});
+
+document.querySelector("#copy-invite-code").addEventListener("click", async () => {
+  const code = document.querySelector("#invite-code").textContent;
+  if (!code || code === "------") return;
+  try {
+    await navigator.clipboard.writeText(code);
+    showToast("Invite code copied.");
+  } catch {
+    showToast(`Invite code: ${code}`);
+  }
+});
+
+document.querySelector("#add-zone-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  addCustomZone(String(data.get("zoneName") || ""));
+  event.currentTarget.reset();
+});
+
+backend.onSession((nextSession) => {
+  backendSession = nextSession;
+  renderSettings();
+});
+
+backend.onData((remote) => {
+  state = {
+    tasks: remote.tasks.map(normalizeTask),
+    customZones: normalizeCustomZones(remote.customZones || [])
+  };
+  saveState();
+  render();
+});
+
 render();
 setActiveTab(location.hash.replace("#", "") || "home", false);
+void backend.start();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then((registration) => registration.update())
+      .catch((error) => console.warn("Home Rhythm update check was unavailable", error));
+  });
+}

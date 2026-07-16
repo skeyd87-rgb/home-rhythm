@@ -10,7 +10,15 @@ See [ROADMAP.md](ROADMAP.md) for the full phased build plan and [PROJECT.md](PRO
 
 ## Current Phase
 
-Phase 0 partially complete — Git initialized, prototype preserved, docs written. **The production Vite + React + TypeScript app has not been scaffolded yet.** Next step: create the production app in a subfolder (e.g. `app/`) and begin Phase 2 (polished clickable prototype with mock data).
+The active app is the mobile-first static PWA in `docs/`. It is deployed to
+GitHub Pages and Firebase Hosting, with Google Sign-In, Firestore household
+sync, member invites, custom zones, and completion history groundwork. Read
+`BACKEND.md` before changing authentication, sync, or household data.
+
+The original root-level vanilla prototype remains reference-only. The planned
+React + TypeScript migration has not happened. Do not claim the app uses React;
+keep data access behind `docs/firebase-repository.js` so a later UI migration
+does not require a backend rewrite.
 
 ## Commands
 
@@ -30,6 +38,17 @@ npm run build     # Production build
 npm run preview   # Preview production build
 npm run lint      # ESLint
 ```
+
+### Active deployed PWA
+
+```powershell
+firebase deploy --only auth
+firebase deploy --only firestore
+firebase deploy --only hosting
+```
+
+- Firebase Hosting: `https://home-rhythm-skeyd87.web.app`
+- GitHub Pages: `https://skeyd87-rgb.github.io/home-rhythm/`
 
 ## Prototype Reference
 

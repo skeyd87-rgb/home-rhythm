@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isHouseholdMember(householdId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid));
+    }
+
+    function validInvite(householdId, inviteCode) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/invites/$(inviteCode))
+        && get(/databases/$(database)/documents/invites/$(inviteCode)).data.householdId == householdId
+        && get(/databases/$(database)/documents/invites/$(inviteCode)).data.active == true;
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /invites/{inviteCode} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && isHouseholdMember(request.resource.data.householdId);
+      allow delete: if signedIn()
+        && isHouseholdMember(resource.data.householdId);
+    }
+
+    match /households/{householdId} {
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow read, update: if isHouseholdMember(householdId);
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow read: if isHouseholdMember(householdId);
+        allow create: if signedIn()
+          && request.auth.uid == memberId
+          && (
+            getAfter(/databases/$(database)/documents/households/$(householdId)).data.createdBy == request.auth.uid
+            || validInvite(householdId, request.resource.data.inviteCode)
+          );
+        allow update: if isHouseholdMember(householdId)
+          && (request.auth.uid == memberId
+            || get(/databases/$(database)/documents/households/$(householdId)).data.createdBy == request.auth.uid);
+        allow delete: if false;
+      }
+
+      match /chores/{choreId} {
+        allow read, write: if isHouseholdMember(householdId);
+      }
+
+      match /completionEvents/{eventId} {
+        allow read, write: if isHouseholdMember(householdId);
+      }
+
+      match /zones/{zoneId} {
+        allow read, write: if isHouseholdMember(householdId);
+      }
+
+      match /settings/{settingId} {
+        allow read, write: if isHouseholdMember(householdId);
+      }
+    }
+  }
+}

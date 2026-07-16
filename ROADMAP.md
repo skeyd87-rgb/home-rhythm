@@ -6,6 +6,18 @@ Home Rhythm is a calm household operating system for shared home care. The roadm
 
 The migrated vanilla JavaScript prototype in this folder is reference material only. Production work should start fresh with React, TypeScript, Vite, and Firebase-ready architecture.
 
+## Current Implementation
+
+The practical build order changed after the roadmap was written. A functional
+static PWA now lives in `docs/` and is deployed through both GitHub Pages and
+Firebase Hosting. It includes editable chores, task status selection, a weekly
+calendar, data-driven House and Rhythm tabs, Settings, custom zones, Google
+Sign-In, shared Firestore households, invite codes, and completion events.
+
+The root-level prototype is still reference-only. React + TypeScript remains a
+future migration option, not the current runtime. See `BACKEND.md` for the live
+Firebase architecture and household onboarding flow.
+
 ## Roadmap Principles
 
 - Build the feeling before the backend.
@@ -319,4 +331,3 @@ Start with Phase 0 and Phase 2 together:
 6. Commit the first polished clickable prototype.
 
 This gives Home Rhythm a clean production path while preserving the useful ideas from the earlier prototypes.
-

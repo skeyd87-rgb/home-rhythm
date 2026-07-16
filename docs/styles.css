@@ -171,6 +171,7 @@ button {
 }
 
 .round-button {
+  position: relative;
   width: 48px;
   height: 48px;
   display: grid;
@@ -179,6 +180,33 @@ button {
   border-radius: 50%;
   background: rgba(255, 253, 248, 0.78);
   color: var(--green);
+  cursor: pointer;
+}
+
+.round-button.small {
+  width: 40px;
+  height: 40px;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.sync-dot {
+  position: absolute;
+  right: 1px;
+  bottom: 2px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.sync-dot.is-synced {
+  background: var(--green);
+}
+
+.sync-dot.is-local {
+  background: #a99f90;
 }
 
 .round-button svg,
@@ -837,10 +865,22 @@ button {
 }
 
 .metric-card {
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 13px;
   background: rgba(255, 253, 248, 0.84);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.metric-card:active,
+.metric-card:focus-visible {
+  border-color: rgba(53, 111, 67, 0.5);
+  background: var(--green-soft);
+  outline: 0;
 }
 
 .metric-card span {
@@ -972,6 +1012,289 @@ button {
 
 .quiet-day {
   padding: 10px 0;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(38, 32, 24, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.settings-overlay[hidden] {
+  display: none;
+}
+
+.settings-sheet {
+  width: min(100%, 390px);
+  max-height: min(880px, calc(100vh - 48px));
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 22px 18px 28px;
+  background: linear-gradient(180deg, #fffdf8, #f7f1e8);
+  box-shadow: 0 28px 90px rgba(43, 34, 22, 0.28);
+}
+
+.settings-header {
+  position: sticky;
+  top: -22px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -22px -18px 16px;
+  padding: 22px 18px 14px;
+  background: rgba(255, 253, 248, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.settings-header h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.settings-section {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.settings-section[hidden] {
+  display: none;
+}
+
+.account-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.account-avatar {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 850;
+  background-position: center;
+  background-size: cover;
+}
+
+.account-row h3,
+.settings-copy h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.account-row p,
+.settings-copy p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sync-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sync-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #a99f90;
+}
+
+.sync-indicator.is-synced {
+  background: var(--green);
+}
+
+.sync-indicator.is-error {
+  background: var(--rust);
+}
+
+.full-button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.settings-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.settings-form.inline-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-form label > span,
+.invite-panel > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.settings-form input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.settings-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.settings-divider::before,
+.settings-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
+.invite-panel {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.invite-panel button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  border: 1px dashed rgba(53, 111, 67, 0.42);
+  border-radius: 14px;
+  padding: 0 14px;
+  background: var(--green-soft);
+  color: var(--green-deep);
+  cursor: pointer;
+}
+
+.invite-panel strong {
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.invite-panel small {
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.member-list,
+.custom-zone-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.member-row,
+.custom-zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.member-row strong,
+.custom-zone-row strong {
+  display: block;
+  font-size: 14px;
+}
+
+.member-row small,
+.custom-zone-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.custom-zone-row button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 10px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.custom-zone-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toast {
+  position: fixed;
+  z-index: 200;
+  left: 50%;
+  bottom: 28px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-50%);
+  border-radius: 12px;
+  padding: 11px 14px;
+  background: var(--green-deep);
+  color: white;
+  box-shadow: 0 12px 36px rgba(43, 34, 22, 0.28);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.toast[hidden] {
+  display: none;
 }
 
 .bottom-nav {
@@ -1109,6 +1432,18 @@ button {
 
   .day-card {
     grid-template-columns: 72px 1fr;
+  }
+
+  .settings-overlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .settings-sheet {
+    width: 100%;
+    max-height: 92vh;
+    border-width: 1px 0 0;
+    border-radius: 24px 24px 0 0;
   }
 
   .bottom-nav {
