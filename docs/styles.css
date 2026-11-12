@@ -767,6 +767,7 @@ textarea {
 }
 .checkbox input {
   width: 18px;
+  flex: 0 0 18px;
   min-height: 18px;
   accent-color: var(--green);
 }

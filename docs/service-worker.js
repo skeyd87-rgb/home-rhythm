@@ -1,9 +1,10 @@
-const cacheName = "home-rhythm-shell-v1.1.1";
+const cacheName = "home-rhythm-shell-v1.2.0";
 const shellFiles = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./notifications.js",
   "./schedule.js",
   "./seeds.js",
   "./google-calendar.js",
@@ -17,6 +18,40 @@ self.addEventListener("install", (event) => {
     caches.open(cacheName).then((cache) => cache.addAll(shellFiles)),
   );
   self.skipWaiting();
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Home Rhythm", {
+      body: data.body || "Your household update is ready.",
+      tag: data.tag || "home-rhythm-daily",
+      icon: new URL("./icon.svg", self.location).href,
+      badge: new URL("./icon.svg", self.location).href,
+      data: { url: new URL("./#tasks", self.location).href },
+      renotify: false,
+    }),
+  );
+});
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL("./#tasks", self.location).href;
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(async (windows) => {
+        const scope = new URL("./", self.location).href;
+        const existing = windows.find((w) => w.url.startsWith(scope));
+        if (existing) {
+          await existing.navigate(url);
+          return existing.focus();
+        }
+        return clients.openWindow(url);
+      }),
+  );
 });
 
 self.addEventListener("activate", (event) => {

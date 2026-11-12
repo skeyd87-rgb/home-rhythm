@@ -1,12 +1,18 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "home-rhythm-notifications",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", "*.log", "test"]
+    }
+  ],
   "auth": {
     "providers": {
       "googleSignIn": {
         "oAuthBrandDisplayName": "Home Rhythm",
         "supportEmail": "skeyd87@gmail.com",
-        "authorizedRedirectUris": [
-          "https://skeyd87-rgb.github.io"
-        ]
+        "authorizedRedirectUris": ["https://skeyd87-rgb.github.io"]
       }
     }
   },
@@ -18,11 +24,7 @@
   },
   "hosting": {
     "public": "docs",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "headers": [
       {
         "source": "**/*.@(js|css|html)",

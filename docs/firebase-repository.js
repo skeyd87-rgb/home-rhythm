@@ -431,6 +431,18 @@ async function renameHousehold(name) {
 }
 
 export const backend = {
+  async notifications(action, payload = {}) {
+    await loadFirebase();
+    if (!auth.currentUser) throw new Error("Sign in to your household first.");
+    const { getFunctions, httpsCallable } = await import(
+      `${sdkBase}/firebase-functions.js`
+    );
+    const result = await httpsCallable(
+      getFunctions(undefined, "us-east1"),
+      "homeRhythmNotifications",
+    )({ action, ...payload });
+    return result.data;
+  },
   async authorizeCalendar() {
     await loadFirebase();
     if (!auth.currentUser)

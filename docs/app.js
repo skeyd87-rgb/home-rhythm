@@ -1,4 +1,12 @@
 import { backend } from "./firebase-repository.js";
+import {
+  loadNotifications,
+  notificationSettings,
+  saveNotifications,
+  disableNotifications,
+  testNotification,
+  stopNotificationsOnSignOut,
+} from "./notifications.js";
 import { seedTasks, maintenanceSeedTasks } from "./seeds.js";
 import {
   dateKey,
@@ -552,7 +560,9 @@ function settings() {
         session.members.map((m) => esc(m.displayName)).join(" · ") +
         "</p>"
       : "") +
-    '</section><section class="settings-card"><h2>Your data</h2><p>Download a backup of your chores, rooms, and recorded history.</p>' +
+    "</section>" +
+    notificationSettings() +
+    '<section class="settings-card"><h2>Your data</h2><p>Download a backup of your chores, rooms, and recorded history.</p>' +
     button("Export backup", "export", "", "secondary") +
     "</section>"
   );
@@ -890,11 +900,19 @@ document.addEventListener("click", (event) => {
       );
     } else if (kind === "sign-in") await backend.signIn();
     else if (kind === "sign-out") {
+      await stopNotificationsOnSignOut();
       setCalendarToken("");
       calendars = [];
       await backend.signOut();
       state = localState();
       render();
+    } else if (kind === "test-notification") {
+      await testNotification();
+      toast("Test sent. Check this device for a notification.");
+    } else if (kind === "disable-notifications") {
+      await disableNotifications();
+      render();
+      toast("Daily notifications are off on this device.");
     } else if (kind === "connect-calendar") {
       if (!session.household)
         throw new Error("Connect your household in Settings first.");
@@ -948,7 +966,11 @@ document.addEventListener("submit", (event) => {
     data = new FormData(form),
     get = (name) => String(data.get(name) || "");
   action(async () => {
-    if (form.id === "task-form") {
+    if (form.id === "notification-form") {
+      await saveNotifications(form);
+      render();
+      toast("Daily notification preferences saved for this device.");
+    } else if (form.id === "task-form") {
       const original = state.tasks.find((t) => t.id === form.dataset.id) || {};
       const cadence = get("cadence"),
         [interval, unit] = recurrence(cadence),
@@ -1026,6 +1048,9 @@ function localState() {
 backend.onSession((next) => {
   const previousUser = session.user?.uid;
   session = next;
+  void loadNotifications(next, () => {
+    if (tab === "settings") render();
+  });
   if (previousUser && previousUser !== next.user?.uid) {
     setCalendarToken("");
     calendars = [];
@@ -1060,8 +1085,7 @@ window.addEventListener("hashchange", () => {
 window.addEventListener("online", render);
 window.addEventListener("offline", render);
 setInterval(() => {
-  if (!$("#dialog").open && document.activeElement?.tagName !== "INPUT")
-    render();
+  if (!$("#dialog").open && !document.activeElement?.closest("form")) render();
 }, 60000);
 navigate(location.hash.slice(1) || "home");
 backend.start();

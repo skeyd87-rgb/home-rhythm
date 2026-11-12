@@ -97,3 +97,45 @@ The app continues in local household mode when signed out. Google Sign-In is
 authorized for the deployed HTTPS origins; use a deployed URL for authentication
 testing. Local chores remain on the device until a signed-in user creates a
 household.
+
+## Daily household notifications
+
+Settings offers opt-in Web Push for each signed-in household member and device.
+On iPhone, install to the Home Screen and open the installed app first. Notification
+permission is requested only when the person clicks Enable daily notification.
+Send test notification confirms delivery after setup. Signing out disables that
+device and unsubscribes its browser; other devices keep their own preferences.
+
+The `functions/` codebase exports only `homeRhythmNotifications` (authenticated
+callable) and `homeRhythmDailyDigest` (15-minute scheduled job), both in `us-east1`.
+The shared Firebase project also hosts other apps: deploy this codebase explicitly
+and do not remove or redeploy unrelated functions.
+
+```powershell
+node --test tests/schedule.test.mjs functions/test/*.test.js
+firebase deploy --only functions:home-rhythm-notifications --project home-rhythm-skeyd87
+firebase deploy --only hosting --project home-rhythm-skeyd87
+```
+
+`HOME_RHYTHM_WEB_PUSH` in Secret Manager contains the persistent Web Push signing
+key pair as JSON (`publicKey`, `privateKey`). Never commit it or rotate it during
+routine releases. Only its public key reaches the app. Callable requests verify
+Firebase identity, current household membership, device ownership, and supported
+push-provider endpoints. Test sends are limited to one per minute per device.
+
+`homeRhythmNotificationDevices/{sha256(endpoint)}` stores the subscription,
+recipient UID, household ID, preferences, and delivery attempt metadata. Existing
+Firestore rules deny all client access to this collection; only the server reads
+and writes it. The scheduler rechecks membership before delivery and disables
+expired subscriptions or registrations whose household changed.
+
+The recipient's selected time zone controls the date and delivery window. Tasks
+with a suggested date through today are included unless handled today. Rotation
+uses the same member ordering as the app. Partner activity counts chores handled
+by another current member since yesterday. Quiet days are skipped by default.
+
+Each local date is claimed transactionally before sending, so overlapping runs
+cannot duplicate a daily notification. This is at-most-once delivery: an outage
+after claiming can skip that day's notification. `lastOutcome: accepted` means
+the push provider accepted it, not that the phone displayed it. Device settings,
+connectivity, browser support, and permission still determine actual delivery.
