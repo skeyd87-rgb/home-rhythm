@@ -1,4 +1,4 @@
-const cacheName = "home-rhythm-shell-v1.2.0";
+const cacheName = "home-rhythm-shell-v1.2.1";
 const shellFiles = [
   "./",
   "./index.html",
@@ -15,7 +15,9 @@ const shellFiles = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(cacheName).then((cache) => cache.addAll(shellFiles)),
+    caches.open(cacheName).then((cache) =>
+      cache.addAll(shellFiles.map((url) => new Request(url, { cache: "reload" }))),
+    ),
   );
   self.skipWaiting();
 });
@@ -75,10 +77,11 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-cache" })
       .then((response) => {
         const copy = response.clone();
-        caches.open(cacheName).then((cache) => cache.put(request, copy));
+        if (response.ok)
+          caches.open(cacheName).then((cache) => cache.put(request, copy));
         return response;
       })
       .catch(() =>

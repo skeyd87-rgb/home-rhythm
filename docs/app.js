@@ -1,4 +1,10 @@
 import { backend } from "./firebase-repository.js";
+const appVersion = "1.2.1";
+const versionLabel = document.querySelector(".app-version");
+if (versionLabel) {
+  versionLabel.textContent = `v${appVersion}`;
+  versionLabel.setAttribute("aria-label", `App version ${appVersion}`);
+}
 import {
   loadNotifications,
   notificationSettings,

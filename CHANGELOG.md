@@ -1,5 +1,12 @@
 # Home Rhythm releases
 
+## 1.2.1 - November 12, 2026
+
+- Version badge now reflects the running app code, even when the browser has an
+  older copy of the page header.
+- Revalidate the home page and service-worker requests so cached HTML and fresh
+  scripts do not leave the header displaying an earlier release.
+
 ## 1.2.0 - November 12, 2026
 
 - Optional daily household push notifications in Settings, with separate choices
@@ -28,6 +35,7 @@
   six screens at 320, 390, 480, 768, and 1440 pixels, plus chore/room dialogs.
 
 For each release, update the version label and accessible label in
-`docs/index.html` and the cache name in `docs/service-worker.js`. Verify the
+`docs/index.html`, the running version in `docs/app.js`, and the cache name in
+`docs/service-worker.js`. Verify the
 deployed page displays that version. Google consent and two signed-in devices
 remain live-account verification steps.
