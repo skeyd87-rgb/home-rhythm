@@ -10,6 +10,12 @@ See [ROADMAP.md](ROADMAP.md) for the full phased build plan and [PROJECT.md](PRO
 
 ## Current Phase
 
+November 11, 2026: the `docs/` PWA includes real date-based recurrence, chore
+editing/completion/snooze/skip, room rename/removal with chore reassignment,
+month calendar navigation, completion history, and opt-in Google Calendar
+publishing. See BACKEND.md for sync scope and remaining live-account checks.
+Run `node --test tests/schedule.test.mjs` for scheduling/calendar regressions.
+
 The active app is the mobile-first static PWA in `docs/`. It is deployed to
 GitHub Pages and Firebase Hosting, with Google Sign-In, Firestore household
 sync, member invites, custom zones, and completion history groundwork. Read

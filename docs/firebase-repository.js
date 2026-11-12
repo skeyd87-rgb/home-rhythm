@@ -4,7 +4,7 @@ const firebaseConfig = {
   storageBucket: "home-rhythm-skeyd87.firebasestorage.app",
   apiKey: "AIzaSyA4t5GF-BARmaYy1sioTao0zts9yKBl67k",
   authDomain: "home-rhythm-skeyd87.firebaseapp.com",
-  messagingSenderId: "95810385749"
+  messagingSenderId: "95810385749",
 };
 
 const sdkVersion = "12.15.0";
@@ -23,7 +23,7 @@ let session = {
   user: null,
   household: null,
   members: [],
-  syncMessage: "Saved on this device"
+  syncMessage: "Saved on this device",
 };
 
 const sessionListeners = new Set();
@@ -47,7 +47,7 @@ async function loadFirebase() {
   const [appModule, authModule, firestoreModule] = await Promise.all([
     import(`${sdkBase}/firebase-app.js`),
     import(`${sdkBase}/firebase-auth.js`),
-    import(`${sdkBase}/firebase-firestore.js`)
+    import(`${sdkBase}/firebase-firestore.js`),
   ]);
   const app = appModule.initializeApp(firebaseConfig);
   auth = authModule.getAuth(app);
@@ -60,9 +60,10 @@ function publicUser(user) {
   if (!user) return null;
   return {
     uid: user.uid,
-    displayName: user.displayName || user.email?.split("@")[0] || "Household member",
+    displayName:
+      user.displayName || user.email?.split("@")[0] || "Household member",
     email: user.email || "",
-    photoURL: user.photoURL || ""
+    photoURL: user.photoURL || "",
   };
 }
 
@@ -86,19 +87,23 @@ async function handleAuthUser(user) {
       user: null,
       household: null,
       members: [],
-      syncMessage: "Saved on this device"
+      syncMessage: "Saved on this device",
     });
     return;
   }
 
   const { doc, getDoc, serverTimestamp, setDoc } = modules.firestore;
   const userRef = doc(db, "users", user.uid);
-  await setDoc(userRef, {
-    displayName: user.displayName || "",
-    email: user.email || "",
-    photoURL: user.photoURL || "",
-    updatedAt: serverTimestamp()
-  }, { merge: true });
+  await setDoc(
+    userRef,
+    {
+      displayName: user.displayName || "",
+      email: user.email || "",
+      photoURL: user.photoURL || "",
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 
   const profile = await getDoc(userRef);
   const householdId = profile.data()?.householdId || null;
@@ -107,7 +112,9 @@ async function handleAuthUser(user) {
     user: publicUser(user),
     household: null,
     members: [],
-    syncMessage: householdId ? "Connecting household" : "Choose or join a household"
+    syncMessage: householdId
+      ? "Connecting household"
+      : "Choose or join a household",
   });
 
   if (householdId) connectToHousehold(householdId);
@@ -120,19 +127,20 @@ function connectToHousehold(householdId) {
   const remote = { household: null, members: [], tasks: null, settings: null };
 
   const emitWhenReady = () => {
-    if (!remote.household || remote.tasks === null || remote.settings === null) return;
+    if (!remote.household || remote.tasks === null || remote.settings === null)
+      return;
     notifyData({
       householdId,
       household: remote.household,
       members: remote.members,
       tasks: remote.tasks,
-      customZones: remote.settings.customZones || []
+      customZones: remote.settings.customZones || [],
     });
     setSession({
       status: "synced",
       household: remote.household,
       members: remote.members,
-      syncMessage: "Synced across household devices"
+      syncMessage: "Synced across household devices",
     });
   };
 
@@ -141,32 +149,69 @@ function connectToHousehold(householdId) {
     setSession({ status: "error", syncMessage: "Sync needs attention" });
   };
 
-  householdUnsubscribers.push(onSnapshot(doc(db, "households", householdId), (snapshot) => {
-    remote.household = snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
-    emitWhenReady();
-  }, onError));
+  householdUnsubscribers.push(
+    onSnapshot(
+      doc(db, "households", householdId),
+      (snapshot) => {
+        remote.household = snapshot.exists()
+          ? { id: snapshot.id, ...snapshot.data() }
+          : null;
+        emitWhenReady();
+      },
+      onError,
+    ),
+  );
 
-  householdUnsubscribers.push(onSnapshot(collection(db, "households", householdId, "members"), (snapshot) => {
-    remote.members = snapshot.docs.map((member) => ({ id: member.id, ...member.data() }));
-    emitWhenReady();
-  }, onError));
+  householdUnsubscribers.push(
+    onSnapshot(
+      collection(db, "households", householdId, "members"),
+      (snapshot) => {
+        remote.members = snapshot.docs.map((member) => ({
+          id: member.id,
+          ...member.data(),
+        }));
+        emitWhenReady();
+      },
+      onError,
+    ),
+  );
 
-  householdUnsubscribers.push(onSnapshot(collection(db, "households", householdId, "chores"), (snapshot) => {
-    remote.tasks = snapshot.docs.map((task) => ({ id: task.id, ...task.data() }));
-    emitWhenReady();
-  }, onError));
+  householdUnsubscribers.push(
+    onSnapshot(
+      collection(db, "households", householdId, "chores"),
+      (snapshot) => {
+        remote.tasks = snapshot.docs.map((task) => ({
+          id: task.id,
+          ...task.data(),
+        }));
+        emitWhenReady();
+      },
+      onError,
+    ),
+  );
 
-  householdUnsubscribers.push(onSnapshot(doc(db, "households", householdId, "settings", "general"), (snapshot) => {
-    remote.settings = snapshot.exists() ? snapshot.data() : { customZones: [] };
-    emitWhenReady();
-  }, onError));
+  householdUnsubscribers.push(
+    onSnapshot(
+      doc(db, "households", householdId, "settings", "general"),
+      (snapshot) => {
+        remote.settings = snapshot.exists()
+          ? snapshot.data()
+          : { customZones: [] };
+        emitWhenReady();
+      },
+      onError,
+    ),
+  );
 }
 
 async function uniqueInviteCode() {
   const { doc, getDoc } = modules.firestore;
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+    const code = Array.from(
+      { length: 6 },
+      () => alphabet[Math.floor(Math.random() * alphabet.length)],
+    ).join("");
     const existing = await getDoc(doc(db, "invites", code));
     if (!existing.exists()) return code;
   }
@@ -175,13 +220,8 @@ async function uniqueInviteCode() {
 
 async function createHousehold(name, tasks, customZones) {
   if (!currentUser) throw new Error("Sign in before creating a household.");
-  const {
-    collection,
-    doc,
-    serverTimestamp,
-    setDoc,
-    writeBatch
-  } = modules.firestore;
+  const { collection, doc, serverTimestamp, setDoc, writeBatch } =
+    modules.firestore;
   const householdRef = doc(collection(db, "households"));
   const householdId = householdRef.id;
   const inviteCode = await uniqueInviteCode();
@@ -192,41 +232,48 @@ async function createHousehold(name, tasks, customZones) {
     createdBy: currentUser.uid,
     inviteCode,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
   });
-  membershipBatch.set(doc(db, "households", householdId, "members", currentUser.uid), {
-    displayName: currentUser.displayName || "",
-    email: currentUser.email || "",
-    photoURL: currentUser.photoURL || "",
-    role: "owner",
-    inviteCode: "owner",
-    joinedAt: serverTimestamp()
-  });
-  membershipBatch.set(doc(db, "users", currentUser.uid), {
-    householdId,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
+  membershipBatch.set(
+    doc(db, "households", householdId, "members", currentUser.uid),
+    {
+      displayName: currentUser.displayName || "",
+      email: currentUser.email || "",
+      photoURL: currentUser.photoURL || "",
+      role: "owner",
+      inviteCode: "owner",
+      joinedAt: serverTimestamp(),
+    },
+  );
+  membershipBatch.set(
+    doc(db, "users", currentUser.uid),
+    {
+      householdId,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
   await membershipBatch.commit();
 
   const contentBatch = writeBatch(db);
   contentBatch.set(doc(db, "households", householdId, "settings", "general"), {
     customZones: cleanDocument(customZones || []),
     updatedAt: serverTimestamp(),
-    updatedBy: currentUser.uid
+    updatedBy: currentUser.uid,
   });
 
   (tasks || []).forEach((task) => {
     contentBatch.set(doc(db, "households", householdId, "chores", task.id), {
       ...cleanDocument(task),
       updatedAt: serverTimestamp(),
-      updatedBy: currentUser.uid
+      updatedBy: currentUser.uid,
     });
   });
   (customZones || []).forEach((zone) => {
     contentBatch.set(doc(db, "households", householdId, "zones", zone.id), {
       ...cleanDocument(zone),
       updatedAt: serverTimestamp(),
-      updatedBy: currentUser.uid
+      updatedBy: currentUser.uid,
     });
   });
 
@@ -235,7 +282,7 @@ async function createHousehold(name, tasks, customZones) {
     householdId,
     active: true,
     createdBy: currentUser.uid,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
   });
   connectToHousehold(householdId);
   return { householdId, inviteCode };
@@ -257,36 +304,64 @@ async function joinHousehold(rawCode) {
     photoURL: currentUser.photoURL || "",
     role: "member",
     inviteCode: code,
-    joinedAt: serverTimestamp()
+    joinedAt: serverTimestamp(),
   });
-  batch.set(doc(db, "users", currentUser.uid), {
-    householdId,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
+  batch.set(
+    doc(db, "users", currentUser.uid),
+    {
+      householdId,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
   await batch.commit();
   connectToHousehold(householdId);
   return householdId;
 }
 
 async function saveTask(task, options = {}) {
-  if (!currentUser || !currentHouseholdId) return;
-  const { collection, doc, serverTimestamp, setDoc } = modules.firestore;
-  await setDoc(doc(db, "households", currentHouseholdId, "chores", task.id), {
-    ...cleanDocument(task),
-    updatedAt: serverTimestamp(),
-    updatedBy: currentUser.uid
-  }, { merge: true });
-  if (options.recordCompletion) {
-    const eventRef = doc(collection(db, "households", currentHouseholdId, "completionEvents"));
-    await setDoc(eventRef, {
-      choreId: task.id,
-      choreTitle: task.title,
-      completedBy: currentUser.uid,
-      completedAt: serverTimestamp(),
-      owner: task.owner,
-      zone: task.zone
-    });
-  }
+  if (!currentUser || !currentHouseholdId) return task;
+  const { doc, serverTimestamp, runTransaction } = modules.firestore;
+  const ref = doc(db, "households", currentHouseholdId, "chores", task.id);
+  const result = { ...task, revision: (task.revision || 0) + 1 };
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (
+      snapshot.exists() &&
+      (snapshot.data().revision || 0) !== (task.revision || 0)
+    )
+      throw new Error(
+        "This chore changed on another device. Close and reopen it to use the latest version.",
+      );
+    if (!snapshot.exists() && task.revision)
+      throw new Error(
+        "This chore was removed on another device. Refresh the list.",
+      );
+    transaction.set(
+      ref,
+      {
+        ...cleanDocument(result),
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid,
+      },
+      { merge: true },
+    );
+    if (options.recordCompletion) {
+      const event = task.history[0];
+      transaction.set(
+        doc(db, "households", currentHouseholdId, "completionEvents", event.id),
+        {
+          choreId: task.id,
+          choreTitle: task.title,
+          completedBy: currentUser.uid,
+          completedAt: serverTimestamp(),
+          owner: task.owner,
+          zone: task.zone,
+        },
+      );
+    }
+  });
+  return result;
 }
 
 async function deleteTask(taskId) {
@@ -297,15 +372,18 @@ async function deleteTask(taskId) {
 
 async function replaceTasks(tasks) {
   if (!currentUser || !currentHouseholdId) return;
-  const { collection, doc, getDocs, serverTimestamp, writeBatch } = modules.firestore;
-  const snapshot = await getDocs(collection(db, "households", currentHouseholdId, "chores"));
+  const { collection, doc, getDocs, serverTimestamp, writeBatch } =
+    modules.firestore;
+  const snapshot = await getDocs(
+    collection(db, "households", currentHouseholdId, "chores"),
+  );
   const batch = writeBatch(db);
   snapshot.docs.forEach((task) => batch.delete(task.ref));
   tasks.forEach((task) => {
     batch.set(doc(db, "households", currentHouseholdId, "chores", task.id), {
       ...cleanDocument(task),
       updatedAt: serverTimestamp(),
-      updatedBy: currentUser.uid
+      updatedBy: currentUser.uid,
     });
   });
   await batch.commit();
@@ -313,50 +391,140 @@ async function replaceTasks(tasks) {
 
 async function saveSettings(customZones) {
   if (!currentUser || !currentHouseholdId) return;
-  const { collection, doc, getDocs, serverTimestamp, writeBatch } = modules.firestore;
-  const existing = await getDocs(collection(db, "households", currentHouseholdId, "zones"));
+  const { collection, doc, getDocs, serverTimestamp, writeBatch } =
+    modules.firestore;
+  const existing = await getDocs(
+    collection(db, "households", currentHouseholdId, "zones"),
+  );
   const batch = writeBatch(db);
   existing.docs.forEach((zone) => batch.delete(zone.ref));
   customZones.forEach((zone) => {
     batch.set(doc(db, "households", currentHouseholdId, "zones", zone.id), {
       ...cleanDocument(zone),
       updatedAt: serverTimestamp(),
-      updatedBy: currentUser.uid
+      updatedBy: currentUser.uid,
     });
   });
-  batch.set(doc(db, "households", currentHouseholdId, "settings", "general"), {
-    customZones: cleanDocument(customZones),
-    updatedAt: serverTimestamp(),
-    updatedBy: currentUser.uid
-  }, { merge: true });
+  batch.set(
+    doc(db, "households", currentHouseholdId, "settings", "general"),
+    {
+      customZones: cleanDocument(customZones),
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser.uid,
+    },
+    { merge: true },
+  );
   await batch.commit();
 }
 
 async function renameHousehold(name) {
   if (!currentUser || !currentHouseholdId) return;
   const { doc, serverTimestamp, setDoc } = modules.firestore;
-  await setDoc(doc(db, "households", currentHouseholdId), {
-    name: name.trim() || "Our Home",
-    updatedAt: serverTimestamp()
-  }, { merge: true });
+  await setDoc(
+    doc(db, "households", currentHouseholdId),
+    {
+      name: name.trim() || "Our Home",
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 export const backend = {
+  async authorizeCalendar() {
+    await loadFirebase();
+    if (!auth.currentUser)
+      throw new Error(
+        "Sign in to your household first, then connect Google Calendar.",
+      );
+    const provider = new modules.auth.GoogleAuthProvider();
+    provider.addScope("https://www.googleapis.com/auth/calendar.events");
+    provider.addScope(
+      "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+    );
+    const result = await modules.auth.reauthenticateWithPopup(
+      auth.currentUser,
+      provider,
+    );
+    const token =
+      modules.auth.GoogleAuthProvider.credentialFromResult(result)?.accessToken;
+    if (!token)
+      throw new Error(
+        "Calendar permission was not granted. Connect again to continue.",
+      );
+    return token;
+  },
+
+  async saveRoomChanges(customZones, tasks) {
+    if (!currentUser || !currentHouseholdId) return tasks;
+    const { doc, runTransaction, serverTimestamp } = modules.firestore;
+    if (tasks.length > 450)
+      throw new Error("Move chores in smaller groups first.");
+    const updated = tasks.map((t) => ({
+      ...t,
+      revision: (t.revision || 0) + 1,
+    }));
+    await runTransaction(db, async (tx) => {
+      const refs = tasks.map((t) =>
+        doc(db, "households", currentHouseholdId, "chores", t.id),
+      );
+      const snapshots = await Promise.all(refs.map((ref) => tx.get(ref)));
+      snapshots.forEach((s, i) => {
+        if (
+          !s.exists() ||
+          (s.data().revision || 0) !== (tasks[i].revision || 0)
+        )
+          throw new Error(
+            "A chore changed on another device. Reopen this room and try again.",
+          );
+      });
+      tx.set(
+        doc(db, "households", currentHouseholdId, "settings", "general"),
+        {
+          customZones: cleanDocument(customZones),
+          updatedAt: serverTimestamp(),
+          updatedBy: currentUser.uid,
+        },
+        { merge: true },
+      );
+      updated.forEach((task, i) =>
+        tx.set(
+          refs[i],
+          {
+            ...cleanDocument(task),
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser.uid,
+          },
+          { merge: true },
+        ),
+      );
+    });
+    return updated;
+  },
   async start() {
     if (started) return;
     started = true;
-    setSession({ status: "connecting", syncMessage: "Checking household sync" });
+    setSession({
+      status: "connecting",
+      syncMessage: "Checking household sync",
+    });
     try {
       await loadFirebase();
       modules.auth.onAuthStateChanged(auth, (user) => {
         handleAuthUser(user).catch((error) => {
           console.error("Home Rhythm authentication error", error);
-          setSession({ status: "error", syncMessage: "Sign-in needs attention" });
+          setSession({
+            status: "error",
+            syncMessage: "Sign-in needs attention",
+          });
         });
       });
     } catch (error) {
       console.error("Firebase could not load", error);
-      setSession({ status: "unavailable", syncMessage: "Offline · saved on this device" });
+      setSession({
+        status: "unavailable",
+        syncMessage: "Offline · saved on this device",
+      });
     }
   },
 
@@ -378,7 +546,11 @@ export const backend = {
     try {
       await modules.auth.signInWithPopup(auth, provider);
     } catch (error) {
-      if (["auth/popup-blocked", "auth/cancelled-popup-request"].includes(error.code)) {
+      if (
+        ["auth/popup-blocked", "auth/cancelled-popup-request"].includes(
+          error.code,
+        )
+      ) {
         await modules.auth.signInWithRedirect(auth, provider);
         return;
       }
@@ -401,5 +573,5 @@ export const backend = {
 
   isSynced() {
     return Boolean(currentUser && currentHouseholdId);
-  }
+  },
 };

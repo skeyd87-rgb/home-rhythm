@@ -1,24 +1,36 @@
-const cacheName = "home-rhythm-shell-v2";
+const cacheName = "home-rhythm-shell-v1.1.1";
 const shellFiles = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./schedule.js",
+  "./seeds.js",
+  "./google-calendar.js",
   "./firebase-repository.js",
   "./manifest.webmanifest",
-  "./icon.svg"
+  "./icon.svg",
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(shellFiles)));
+  event.waitUntil(
+    caches.open(cacheName).then((cache) => cache.addAll(shellFiles)),
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== cacheName).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== cacheName)
+            .map((key) => caches.delete(key)),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -34,9 +46,13 @@ self.addEventListener("fetch", (event) => {
         caches.open(cacheName).then((cache) => cache.put(request, copy));
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return request.mode === "navigate" ? caches.match("./index.html") : Response.error();
-      }))
+      .catch(() =>
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
+          return request.mode === "navigate"
+            ? caches.match("./index.html")
+            : Response.error();
+        }),
+      ),
   );
 });
