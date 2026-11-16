@@ -24,7 +24,8 @@ service cloud.firestore {
     }
 
     match /invites/{inviteCode} {
-      allow read: if signedIn();
+      // Lookup by exact code only. Listing is denied so codes can't be harvested.
+      allow get: if signedIn();
       allow create, update: if signedIn()
         && isHouseholdMember(request.resource.data.householdId);
       allow delete: if signedIn()
