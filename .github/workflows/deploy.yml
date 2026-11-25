@@ -1,0 +1,80 @@
+name: Test and deploy Home Rhythm
+
+# Deploys everything this repo owns in the shared home-rhythm-skeyd87 project, in one run:
+#   hosting (default site, docs/), firestore ((default) db rules + indexes),
+#   functions:home-rhythm-notifications (codebase).
+# "auth" is deliberately left out; deploy it by hand when firebase.json's auth block changes.
+# Never widen --only. An unscoped deploy or plain "functions" can offer to delete
+# the Health dashboard's and the YNAB connector's functions (see BACKEND.md).
+# GitHub Pages for docs/ is published separately by GitHub's Pages setting.
+
+on:
+  push:
+    branches: [main]
+    # A merge that only changes workflows or docs does not deploy; use Run workflow instead.
+    paths-ignore:
+      - '.github/**'
+      - '**/*.md'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate only (firebase deploy --dry-run), change nothing"
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-home-rhythm
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+      - name: Schedule and calendar tests
+        run: node --test tests/schedule.test.mjs
+      - name: Functions tests
+        run: npm test
+        working-directory: functions
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install functions dependencies (firebase-tools loads index.js)
+        run: npm ci
+        working-directory: functions
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@15.15.0
+      - name: Deploy hosting + firestore + home-rhythm-notifications functions
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+        run: >
+          firebase deploy
+          --project home-rhythm-skeyd87
+          --only hosting,firestore,functions:home-rhythm-notifications
+          --non-interactive $DRY_RUN
