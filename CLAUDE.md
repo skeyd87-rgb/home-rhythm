@@ -116,3 +116,7 @@ This applies to UI copy, code comments, variable names, and status strings.
 - Owner: me / partner / shared / rotating
 - Zone: one of the 10 zones (Kitchen, Bathrooms, Upstairs, Downstairs, Cats, Laundry, Garage, Yard, Utility, Exterior)
 - Fields: last completed, next suggested window, notes/standard of done, supplies, estimated time, energy level
+
+## Shipping changes
+
+When work is done, push your claude/* branch and open a pull request to main. Merging runs .github/workflows/deploy.yml, which tests and then deploys hosting, Firestore rules/indexes and the home-rhythm-notifications functions. Never deploy from a session; deploy credentials live only in GitHub.

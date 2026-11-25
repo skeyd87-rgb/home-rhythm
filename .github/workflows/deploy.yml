@@ -11,6 +11,10 @@ name: Test and deploy Home Rhythm
 on:
   push:
     branches: [main]
+    # A merge that only changes workflows or docs does not deploy; use Run workflow instead.
+    paths-ignore:
+      - '.github/**'
+      - '**/*.md'
   pull_request:
     branches: [main]
   workflow_dispatch:
